@@ -2,17 +2,16 @@ import express, { Express, Request, Response, ErrorRequestHandler } from "expres
 import dotenv from "dotenv";
 import findConfig from "find-config";
 import cors from "cors"
+import bodyParser from "body-parser"
 
 import apiRouter from "./routes/apiRouter"
 
 dotenv.config({path: findConfig(".env") || undefined});
 
-console.log("password in index ts: " + process.env.DB_PASSWORD);
-
-
 const app: Express = express();
 const port = process.env.PORT || 8000;
 
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors())
 
 app.get("/", (req: Request, res: Response) => {
