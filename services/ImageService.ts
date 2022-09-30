@@ -19,6 +19,10 @@ class ImageService {
 
 		return id;
 	}
+
+	async getImages() {
+		return await imageDAO.getImages();
+	}
 }
 
 export default new ImageService(imageDAO, s3);

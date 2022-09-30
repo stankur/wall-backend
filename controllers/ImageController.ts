@@ -54,6 +54,29 @@ class ImageController {
 
 		return res.json({ id });
 	}
+
+	async getImages(req: Request, res: Response, next: NextFunction) {
+		interface ImageWithPoints {
+			id: string;
+			key: string;
+			user: string;
+			created_at: string;
+			updated_at: string;
+			likes: number;
+			dislikes: number;
+			points: number;
+		}
+
+		let images: ImageWithPoints[] = [];
+
+		try {
+			images = await this.imageService.getImages();
+		} catch (err) {
+			return next(err);
+		}
+
+		return res.json({ images });
+	}
 }
 
 export default new ImageController(imageService);
