@@ -1,13 +1,23 @@
 import { Knex } from "knex";
 import db from "../db/db";
+import { QueryHelper } from "./helper";
 
 interface Interaction {
 	id: string;
-	image: string;
+	image: string | null;
+	caption: string | null;
 	user: string;
 	type: "like" | "dislike";
 	created_at: string;
 	updated_at: string;
+}
+
+interface InteractionPoints {
+	image: string | null;
+	caption: string | null;
+	likes: number;
+	dislikes: number;
+	points: number;
 }
 
 const helper = {
@@ -28,10 +38,17 @@ class InteractionDAO {
 	}
 
 	async createInteraction(
-		image: string,
+		image: string | undefined,
 		user: string,
-		type: "like" | "dislike"
+		type: "like" | "dislike",
+		caption: string | undefined = undefined
 	) {
+		if (!image && !caption) {
+			throw new Error(
+				`either image or caption data must be given to create an interaction (like/dislike)`
+			);
+		}
+
 		type InteractionData = Pick<Interaction, "id" | "type">;
 		type ReturnedId = Pick<Interaction, "id">;
 
@@ -40,7 +57,13 @@ class InteractionDAO {
 		try {
 			interactionDataResult = await this.db<Interaction>("interactions")
 				.select("id", "type")
-				.where({ image, user });
+				.modify(function (qb) {
+					if (image) {
+						qb.where({ image, user });
+						return;
+					}
+					qb.where({ caption, user });
+				});
 		} catch (err) {
 			throw new Error(`There is an error when we are checking if an interaction (like/dislike) 
              with the image and user provided exists in our database`);
@@ -55,7 +78,13 @@ class InteractionDAO {
 			let returnedIds: ReturnedId[] = await this.db<Partial<Interaction>>(
 				"interactions"
 			)
-				.insert({ image, user, type })
+				.modify(function (qb) {
+					if (image) {
+						qb.insert({ image, user, type });
+						return;
+					}
+					qb.insert({ caption, user, type });
+				})
 				.returning("id");
 
 			let [returnedId] = returnedIds;
@@ -75,12 +104,99 @@ class InteractionDAO {
 			.update({
 				type: helper.findComplement(interactionData["type"]),
 			})
+			.modify(function (qb) {
+				if (image) {
+					qb.where({ image, user });
+					return;
+				}
+				qb.where({ caption, user });
+			})
 			.returning("id");
 
 		let [returnedId] = returnedIds;
 		return returnedId["id"];
 	}
+
+	_getPointsCTEQuery() {
+		interface InteractionLikes {
+			image: string | null;
+			caption: string | null;
+			likes: number;
+		}
+
+		interface InteractionDislikes {
+			image: string | null;
+			caption: string | null;
+			dislikes: number;
+		}
+
+		return this.db
+			.with(
+				"interaction_likes",
+				this.db<Interaction>("interactions")
+					.select("image", "caption")
+					.count("type", { as: "likes" })
+					.where("type", "=", "like")
+					.groupBy("image", "caption")
+			)
+			.with(
+				"interaction_dislikes",
+				this.db<Interaction>("interactions")
+					.select("image", "caption")
+					.count("type", { as: "dislikes" })
+					.where("type", "=", "dislike")
+					.groupBy("image", "caption")
+			)
+			.with(
+				"interaction_points",
+				this.db
+					.select({
+						points: this.db.raw(
+							`(${QueryHelper.convertNullToZero(
+								"interaction_likes.likes"
+							)} - ${QueryHelper.convertNullToZero(
+								"interaction_dislikes.dislikes"
+							)})`
+						),
+						likes: this.db.raw(
+							QueryHelper.convertNullToZero(
+								"interaction_likes.likes"
+							)
+						),
+						dislikes: this.db.raw(
+							QueryHelper.convertNullToZero(
+								"interaction_dislikes.dislikes"
+							)
+						),
+						image: this.db.raw(
+							QueryHelper.whicheverNotNull(
+								"interaction_dislikes.image",
+								"interaction_likes.image"
+							)
+						),
+						caption: this.db.raw(
+							QueryHelper.whicheverNotNull(
+								"interaction_dislikes.caption",
+								"interaction_likes.caption"
+							)
+						),
+					})
+					.from<InteractionLikes>("interaction_likes")
+					.fullOuterJoin<InteractionDislikes>(
+						"interaction_dislikes",
+						function () {
+							this.on(
+								"interaction_likes.image",
+								"interaction_dislikes.image"
+							).andOn(
+								"interaction_likes.caption",
+								"interaction_dislikes.caption"
+							);
+						}
+					)
+			);
+	}
 }
 
 export default new InteractionDAO(db);
-export { Interaction, InteractionDAO };
+export { InteractionDAO, InteractionPoints };

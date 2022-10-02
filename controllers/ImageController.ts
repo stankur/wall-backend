@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import imageService, { ImageService } from "../services/ImageService";
+import imageService, { ImageService, ImageWithPoints } from "../services/ImageService";
 
 const helper = {
 	isImage: (mimetype: string) => {
@@ -56,16 +56,6 @@ class ImageController {
 	}
 
 	async getImages(req: Request, res: Response, next: NextFunction) {
-		interface ImageWithPoints {
-			id: string;
-			key: string;
-			user: string;
-			created_at: string;
-			updated_at: string;
-			likes: number;
-			dislikes: number;
-			points: number;
-		}
 
 		let images: ImageWithPoints[] = [];
 
@@ -76,6 +66,34 @@ class ImageController {
 		}
 
 		return res.json({ images });
+	}
+
+	async voteImage(req: Request, res: Response, next: NextFunction) {
+		if (
+			typeof req.params.id !== "string" ||
+			typeof req.body.user !== "string" ||
+			!(req.body.type === "like" || req.body.type === "dislike")
+		) {
+			return next(
+				new Error(
+					`either image id or user id is not given or vote type invalid (vote must be like | dislike)`
+				)
+			);
+		}
+
+		let id: string = "";
+
+		try {
+			id = await this.imageService.voteImage(
+				req.params.id,
+				req.body.user,
+				req.body.type
+			);
+		} catch (err) {
+			return next(err);
+		}
+
+		return res.json({ id });
 	}
 }
 

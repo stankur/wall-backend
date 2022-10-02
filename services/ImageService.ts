@@ -1,4 +1,4 @@
-import imageDAO, {ImageDAO} from "../dao/ImageDAO";
+import imageDAO, { ImageDAO, ImageWithPoints } from "../dao/ImageDAO";
 import s3, { S3 } from "../clients/s3";
 
 class ImageService {
@@ -20,10 +20,14 @@ class ImageService {
 		return id;
 	}
 
-	async getImages() {
-		return await imageDAO.getImages();
+	async getImages(): Promise<ImageWithPoints[]> {
+		return await this.imageDAO.getImages();
+	}
+
+	async voteImage(image: string, user: string, type: "like" | "dislike") {
+		return await this.imageDAO.voteImage(image, user, type);
 	}
 }
 
 export default new ImageService(imageDAO, s3);
-export { ImageService };
+export { ImageService, ImageWithPoints };

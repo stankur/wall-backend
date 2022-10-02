@@ -1,7 +1,11 @@
 import { Knex } from "knex";
 import db from "../db/db";
 
-import { Interaction } from "./InteractionDAO";
+import interactionDAO, {
+	InteractionDAO,
+	InteractionPoints,
+} from "./InteractionDAO";
+import { QueryHelper } from "./helper";
 
 interface Image {
 	id: string;
@@ -11,38 +15,27 @@ interface Image {
 	updated_at: string;
 }
 
-const helper = {
-	convertNullToZero: function (column: string) {
-		return `(
-            CASE
-            WHEN ${column} IS NULL
-            THEN 0
-            ELSE ${column}
-            END
-        )`;
-	},
-    whicheverNotNull: function(column1: string, column2: string) {
-        return `(
-            CASE
-            WHEN ${column1} IS NULL
-            THEN ${column2}
-            ELSE ${column1}
-            END
-        )`
-    }
-};
+interface ImageWithPoints extends Image {
+	likes: number;
+	dislikes: number;
+	points: number;
+}
 
 class ImageDAO {
 	db: Knex;
+	interactionDAO: InteractionDAO;
 
-	constructor(db: Knex) {
+	constructor(db: Knex, interactionDAO: InteractionDAO) {
 		this.db = db;
+		this.interactionDAO = interactionDAO;
 	}
 
 	async createImage(key: string, user: string) {
-		let id: string = "";
+		type ReturnedId = Pick<Image, "id">;
+		let returnedIds: ReturnedId[] = [];
+
 		try {
-			[id] = await this.db<Partial<Image>>("images")
+			returnedIds = await this.db<Image>("images")
 				.insert({ key, user })
 				.returning("id");
 		} catch (e) {
@@ -53,84 +46,17 @@ class ImageDAO {
             `);
 		}
 
-		return id;
+		let [returnedId] = returnedIds;
+
+		return returnedId["id"];
 	}
 
 	async getImages() {
-		interface ImageLikes {
-			image: string;
-			likes: number;
-		}
-
-		interface ImageDislikes {
-			image: string;
-			dislikes: number;
-		}
-
-		interface ImagePoints {
-			image: string;
-			points: number;
-			likes: number;
-			dislikes: number;
-		}
-
-		interface ImageWithPoints extends Image {
-			likes: number;
-			dislikes: number;
-			points: number;
-		}
 		let returnedImageWithPoints: ImageWithPoints[] = [];
 
 		try {
-			returnedImageWithPoints = await this.db
-				.with(
-					"image_likes",
-					this.db<Interaction>("interactions")
-						.select("image")
-						.count("type", { as: "likes" })
-						.where("type", "=", "like")
-						.groupBy("image")
-				)
-				.with(
-					"image_dislikes",
-					this.db<Interaction>("interactions")
-						.select("image")
-						.count("type", { as: "dislikes" })
-						.where("type", "=", "dislike")
-						.groupBy("image")
-				)
-				.with(
-					"image_points",
-					this.db
-						.select({
-							points: this.db.raw(`(${helper.convertNullToZero(
-								"image_likes.likes"
-							)} -
-                            ${helper.convertNullToZero(
-								"image_dislikes.dislikes"
-							)})`),
-							likes: this.db.raw(
-								helper.convertNullToZero("image_likes.likes")
-							),
-							dislikes: this.db.raw(
-								helper.convertNullToZero(
-									"image_dislikes.dislikes"
-								)
-							),
-							image: this.db.raw(
-								helper.whicheverNotNull(
-									"image_dislikes.image",
-									"image_likes.image"
-								)
-							),
-						})
-						.from<ImageLikes>("image_likes")
-						.fullOuterJoin<ImageDislikes>(
-							"image_dislikes",
-							"image_likes.image",
-							"image_dislikes.image"
-						)
-				)
+			returnedImageWithPoints = await this.interactionDAO
+				._getPointsCTEQuery()
 				.select({
 					id: "images.id",
 					key: "images.key",
@@ -138,20 +64,26 @@ class ImageDAO {
 					created_at: "images.created_at",
 					updated_at: "images.updated_at",
 					likes: this.db.raw(
-						helper.convertNullToZero("image_points.likes")
+						QueryHelper.convertNullToZero(
+							"interaction_points.likes"
+						)
 					),
 					dislikes: this.db.raw(
-						helper.convertNullToZero("image_points.dislikes")
+						QueryHelper.convertNullToZero(
+							"interaction_points.dislikes"
+						)
 					),
 					points: this.db.raw(
-						helper.convertNullToZero("image_points.points")
+						QueryHelper.convertNullToZero(
+							"interaction_points.points"
+						)
 					),
 				})
 				.from<Image>("images")
-				.leftJoin<ImagePoints>(
-					"image_points",
+				.leftJoin<InteractionPoints>(
+					"interaction_points",
 					"images.id",
-					"image_points.image"
+					"interaction_points.image"
 				);
 		} catch (err) {
 			throw new Error(
@@ -163,7 +95,11 @@ class ImageDAO {
 
 		return returnedImageWithPoints;
 	}
+
+	async voteImage(image: string, user: string, type: "like" | "dislike") {
+		return await this.interactionDAO.createInteraction(image, user, type);
+	}
 }
 
-export default new ImageDAO(db);
-export { ImageDAO };
+export default new ImageDAO(db, interactionDAO);
+export { ImageDAO, ImageWithPoints };

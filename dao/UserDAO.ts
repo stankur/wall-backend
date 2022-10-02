@@ -20,7 +20,7 @@ class UserDAO {
 		let id: string = "";
 
 		try {
-			[id] = await this.db<Partial<User>>("users")
+			[id] = await this.db<User>("users")
 				.insert({ username, password })
 				.returning("id");
 		} catch (err) {
