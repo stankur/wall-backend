@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import imageService, { ImageService, ImageWithPoints } from "../services/ImageService";
+import imageService, { ImageService, ImageWithTopCaptions } from "../services/ImageService";
 
 const helper = {
 	isImage: (mimetype: string) => {
@@ -57,7 +57,7 @@ class ImageController {
 
 	async getImages(req: Request, res: Response, next: NextFunction) {
 
-		let images: ImageWithPoints[] = [];
+		let images: ImageWithTopCaptions[] = [];
 
 		try {
 			images = await this.imageService.getImages();

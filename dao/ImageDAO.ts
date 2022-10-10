@@ -5,7 +5,7 @@ import interactionDAO, {
 	InteractionDAO,
 	InteractionPoints,
 } from "./InteractionDAO";
-import { QueryHelper } from "./helper";
+import { QueryHelper, TypeFixer } from "./helper";
 
 interface Image {
 	id: string;
@@ -93,6 +93,12 @@ class ImageDAO {
 			);
 		}
 
+		TypeFixer.convertEachKeyToIntIfPossible(
+			returnedImageWithPoints,
+			"likes",
+			"dislikes",
+			"points"
+		);
 		return returnedImageWithPoints;
 	}
 

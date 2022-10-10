@@ -130,6 +130,34 @@ class InteractionDAO {
 			dislikes: number;
 		}
 
+		const selectedFields = {
+			points: this.db.raw(
+				`(${QueryHelper.convertNullToZero(
+					"interaction_likes.likes"
+				)} - ${QueryHelper.convertNullToZero(
+					"interaction_dislikes.dislikes"
+				)})`
+			),
+			likes: this.db.raw(
+				QueryHelper.convertNullToZero("interaction_likes.likes")
+			),
+			dislikes: this.db.raw(
+				QueryHelper.convertNullToZero("interaction_dislikes.dislikes")
+			),
+			image: this.db.raw(
+				QueryHelper.whicheverNotNull(
+					"interaction_dislikes.image",
+					"interaction_likes.image"
+				)
+			),
+			caption: this.db.raw(
+				QueryHelper.whicheverNotNull(
+					"interaction_dislikes.caption",
+					"interaction_likes.caption"
+				)
+			),
+		};
+
 		return this.db
 			.with(
 				"interaction_likes",
@@ -151,48 +179,47 @@ class InteractionDAO {
 				"interaction_points",
 				this.db
 					.select({
-						points: this.db.raw(
-							`(${QueryHelper.convertNullToZero(
-								"interaction_likes.likes"
-							)} - ${QueryHelper.convertNullToZero(
-								"interaction_dislikes.dislikes"
-							)})`
-						),
-						likes: this.db.raw(
-							QueryHelper.convertNullToZero(
-								"interaction_likes.likes"
-							)
-						),
-						dislikes: this.db.raw(
-							QueryHelper.convertNullToZero(
-								"interaction_dislikes.dislikes"
-							)
-						),
-						image: this.db.raw(
-							QueryHelper.whicheverNotNull(
-								"interaction_dislikes.image",
-								"interaction_likes.image"
-							)
-						),
-						caption: this.db.raw(
-							QueryHelper.whicheverNotNull(
-								"interaction_dislikes.caption",
-								"interaction_likes.caption"
-							)
-						),
+						points: this.db.raw(`all_points.points`),
+						likes: this.db.raw("all_points.likes"),
+						dislikes: this.db.raw("all_points.dislikes"),
+						image: this.db.raw(`all_points.image`),
+						caption: this.db.raw(`all_points.caption`),
 					})
-					.from<InteractionLikes>("interaction_likes")
-					.fullOuterJoin<InteractionDislikes>(
-						"interaction_dislikes",
-						function () {
-							this.on(
-								"interaction_likes.image",
-								"interaction_dislikes.image"
-							).andOn(
-								"interaction_likes.caption",
-								"interaction_dislikes.caption"
-							);
-						}
+					.from(
+						this.db
+							.select(selectedFields)
+							.from<InteractionLikes>("interaction_likes")
+							.fullOuterJoin<InteractionDislikes>(
+								"interaction_dislikes",
+								function () {
+									this.on(
+										"interaction_likes.image",
+										"=",
+										"interaction_dislikes.image"
+									);
+								}
+							)
+							.whereNotNull("interaction_likes.image")
+							.whereNotNull("interaction_dislikes.image")
+							.union(function () {
+								this.select(selectedFields)
+									.from<InteractionLikes>("interaction_likes")
+									.fullOuterJoin<InteractionDislikes>(
+										"interaction_dislikes",
+										function () {
+											this.on(
+												"interaction_likes.caption",
+												"=",
+												"interaction_dislikes.caption"
+											);
+										}
+									)
+									.whereNotNull("interaction_likes.caption")
+									.whereNotNull(
+										"interaction_dislikes.caption"
+									);
+							})
+							.as("all_points")
 					)
 			);
 	}

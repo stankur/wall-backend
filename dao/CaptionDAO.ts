@@ -1,10 +1,10 @@
-import { Knex } from "knex";
+import knex, { Knex } from "knex";
 import db from "../db/db";
 import interactionDAO, {
 	InteractionDAO,
 	InteractionPoints,
 } from "./InteractionDAO";
-import { QueryHelper } from "./helper";
+import { QueryHelper, TypeFixer } from "./helper";
 
 interface Caption {
 	id: string;
@@ -19,6 +19,7 @@ interface CaptionWithPoints extends Caption {
 	likes: number;
 	dislikes: number;
 	points: number;
+	rank?: number;
 }
 
 class CaptionDAO {
@@ -56,10 +57,10 @@ class CaptionDAO {
 		);
 	}
 
-	async getCaptions() {
+	async getCaptions(limitForEachImage: Number | undefined = undefined) {
 		let returnedCaptionWithPoints: CaptionWithPoints[] = [];
 		try {
-			returnedCaptionWithPoints = await this.interactionDAO
+			let query: Knex.QueryBuilder = this.interactionDAO
 				._getPointsCTEQuery()
 				.select({
 					id: "captions.id",
@@ -84,12 +85,44 @@ class CaptionDAO {
 						)
 					),
 				})
+				.modify(function (qb) {
+					if (limitForEachImage) {
+						qb.rank("rank", function () {
+							this.orderBy([
+								{
+									column: "interaction_points.caption",
+									order: "desc",
+								},
+								{
+									column: "captions.created_at",
+									order: "asc",
+								},
+							]).partitionBy("captions.image");
+						});
+					}
+				})
 				.from<Caption>("captions")
 				.leftJoin<InteractionPoints>(
 					"interaction_points",
 					"captions.id",
 					"interaction_points.caption"
 				);
+
+			if (limitForEachImage) {
+				query = this.db
+					.select("*")
+					.from(query.as("query"))
+					.where("rank", "<=", limitForEachImage);
+			}
+			returnedCaptionWithPoints = await query;
+
+			TypeFixer.convertEachKeyToIntIfPossible(
+				returnedCaptionWithPoints,
+				"likes",
+				"dislikes",
+				"points",
+				"rank"
+			);
 		} catch (err) {
 			throw new Error(
 				`There is an error while trying to get the captions data from the database: ${
