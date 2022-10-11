@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router } from "express";
 
 import userController from "../controllers/UserController";
 import imageController from "../controllers/ImageController";

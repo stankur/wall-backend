@@ -2,7 +2,8 @@ import imageDAO, { ImageDAO, ImageWithPoints } from "../dao/ImageDAO";
 import captionDAO, { CaptionDAO, CaptionWithPoints } from "../dao/CaptionDAO";
 import s3, { S3 } from "../clients/s3";
 
-interface ImageWithTopCaptions extends ImageWithPoints {
+interface ImageWithTopCaptions extends Omit<ImageWithPoints, "key"> {
+    imageUrl: string
 	topCaptions: Required<CaptionWithPoints>[];
 }
 
@@ -34,18 +35,21 @@ class ImageService {
 
 		let imagesIndex: Record<string, number> = {};
 
-		let imageWithTopCaptions: ImageWithTopCaptions[] = images.map(function (
-			imageWithPoints,
-			index
-		) {
-            if (imageWithPoints.id in imagesIndex) {
-                throw new Error(
-					`This is an internal error. Please contact to inform about this. A unique image that is upposed to occur only once after the points have been calculated somehow appeared more than once.`
-				);
-            }
+        interface ImageWithTopCaptionsNoUrl extends ImageWithPoints {
+			topCaptions: Required<CaptionWithPoints>[];
+		}
+
+		let imageWithTopCaptions: ImageWithTopCaptionsNoUrl[] = images.map(
+			function (imageWithPoints, index) {
+				if (imageWithPoints.id in imagesIndex) {
+					throw new Error(
+						`This is an internal error. Please contact to inform about this. A unique image that is upposed to occur only once after the points have been calculated somehow appeared more than once.`
+					);
+				}
 				imagesIndex[imageWithPoints.id] = index;
-			return { ...imageWithPoints, topCaptions: [] };
-		});
+				return { ...imageWithPoints, topCaptions: [] };
+			}
+		);
 
 		for (let limitedCaption of limitedCaptions) {
 			if (typeof limitedCaption.rank === "undefined") {
@@ -72,7 +76,14 @@ class ImageService {
 			}
 		}
 
-		return imageWithTopCaptions;
+        let s3 = this.s3;
+
+		return await Promise.all(imageWithTopCaptions.map(async function (img) {
+            let imageUrl = await s3.getSignedUrl(img.key);
+            let {key, ...imgWithNoKey} = img;
+            let imageWithUrl: ImageWithTopCaptions = {...imgWithNoKey, imageUrl}
+            return imageWithUrl;
+        }));
 	}
 
 	async voteImage(image: string, user: string, type: "like" | "dislike") {

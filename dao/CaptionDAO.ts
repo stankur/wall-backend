@@ -90,12 +90,12 @@ class CaptionDAO {
 						qb.rank("rank", function () {
 							this.orderBy([
 								{
-									column: "interaction_points.caption",
+									column: "interaction_points.points",
 									order: "desc",
 								},
 								{
 									column: "captions.created_at",
-									order: "asc",
+									order: "desc",
 								},
 							]).partitionBy("captions.image");
 						});

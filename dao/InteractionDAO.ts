@@ -200,7 +200,9 @@ class InteractionDAO {
 								}
 							)
 							.whereNotNull("interaction_likes.image")
-							.whereNotNull("interaction_dislikes.image")
+							.orWhere(function() {
+                                this.whereNotNull("interaction_dislikes.image");
+                            })
 							.union(function () {
 								this.select(selectedFields)
 									.from<InteractionLikes>("interaction_likes")
@@ -215,9 +217,11 @@ class InteractionDAO {
 										}
 									)
 									.whereNotNull("interaction_likes.caption")
-									.whereNotNull(
-										"interaction_dislikes.caption"
-									);
+									.orWhere(function () {
+										this.whereNotNull(
+											"interaction_dislikes.caption"
+										);
+									});
 							})
 							.as("all_points")
 					)

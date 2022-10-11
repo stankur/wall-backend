@@ -2,7 +2,9 @@ import dotenv from "dotenv";
 import findConfig from "find-config";
 import crypto from "crypto";
 
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
 
 dotenv.config({ path: findConfig(".env") || undefined });
 
@@ -14,7 +16,6 @@ class S3 {
 	private s3Client: S3Client;
 	private bucketName: string;
 
-
 	constructor(
 		accessKeyId: string = "",
 		secretAccessKey: string = "",
@@ -22,8 +23,8 @@ class S3 {
 		endpoint: string | undefined = undefined
 	) {
 		this.bucketName = bucketName;
-        // initialization is different in development and production. please adjust to fit both later!
-        // region field should be included in production
+		// initialization is different in development and production. please adjust to fit both later!
+		// region field should be included in production
 		this.s3Client = new S3Client({
 			credentials: {
 				accessKeyId: accessKeyId,
@@ -33,7 +34,7 @@ class S3 {
 			forcePathStyle: true,
 		});
 	}
-    
+
 	async storeImageReturningKey(
 		buffer: Buffer,
 		mimeType: string
@@ -58,6 +59,17 @@ class S3 {
 		}
 
 		return key;
+	}
+
+	async getSignedUrl(key: string) {
+		const getObjectCommand: GetObjectCommand = new GetObjectCommand({
+			Bucket: this.bucketName,
+			Key: key,
+		});
+
+		return await getSignedUrl(this.s3Client, getObjectCommand, {
+			expiresIn: 3600,
+		});
 	}
 }
 
