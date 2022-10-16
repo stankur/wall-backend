@@ -1,10 +1,16 @@
-import imageDAO, { ImageDAO, ImageWithPoints } from "../dao/ImageDAO";
-import captionDAO, { CaptionDAO, CaptionWithPoints } from "../dao/CaptionDAO";
+import imageDAO, {
+	ImageDAO,
+	ImageWithPointsAndUsername,
+} from "../dao/ImageDAO";
+import captionDAO, {
+	CaptionDAO,
+	CaptionWithPointsAndUsername,
+} from "../dao/CaptionDAO";
 import s3, { S3 } from "../clients/s3";
 
-interface ImageWithTopCaptions extends Omit<ImageWithPoints, "key"> {
-    imageUrl: string
-	topCaptions: Required<CaptionWithPoints>[];
+interface ImageWithCaptions extends Omit<ImageWithPointsAndUsername, "key"> {
+	imageUrl: string;
+	captions: Required<CaptionWithPointsAndUsername>[];
 }
 
 class ImageService {
@@ -28,38 +34,40 @@ class ImageService {
 		return id;
 	}
 
-	async getImages(): Promise<ImageWithTopCaptions[]> {
-		let images: ImageWithPoints[] = await this.imageDAO.getImages();
-		let limitedCaptions: CaptionWithPoints[] =
-			await this.captionDAO.getCaptions(3);
+	async getImages(): Promise<ImageWithCaptions[]> {
+		let images: ImageWithPointsAndUsername[] =
+			await this.imageDAO.getImages();
+		let captions: CaptionWithPointsAndUsername[] =
+			await this.captionDAO.getCaptions();
 
 		let imagesIndex: Record<string, number> = {};
 
-        interface ImageWithTopCaptionsNoUrl extends ImageWithPoints {
-			topCaptions: Required<CaptionWithPoints>[];
+		interface ImageWithCaptionsNoUrl extends ImageWithPointsAndUsername {
+			captions: Required<CaptionWithPointsAndUsername>[];
 		}
 
-		let imageWithTopCaptions: ImageWithTopCaptionsNoUrl[] = images.map(
-			function (imageWithPoints, index) {
-				if (imageWithPoints.id in imagesIndex) {
-					throw new Error(
-						`This is an internal error. Please contact to inform about this. A unique image that is upposed to occur only once after the points have been calculated somehow appeared more than once.`
-					);
-				}
-				imagesIndex[imageWithPoints.id] = index;
-				return { ...imageWithPoints, topCaptions: [] };
+		let imageWithCaptions: ImageWithCaptionsNoUrl[] = images.map(function (
+			imageWithPoints,
+			index
+		) {
+			if (imageWithPoints.id in imagesIndex) {
+				throw new Error(
+					`This is an internal error. Please contact to inform about this. A unique image that is upposed to occur only once after the points have been calculated somehow appeared more than once.`
+				);
 			}
-		);
+			imagesIndex[imageWithPoints.id] = index;
+			return { ...imageWithPoints, captions: [] };
+		});
 
-		for (let limitedCaption of limitedCaptions) {
-			if (typeof limitedCaption.rank === "undefined") {
+		for (let caption of captions) {
+			if (typeof caption.rank === "undefined") {
 				throw new Error(
 					`This is an internal error. Please contact to inform about this. no rank information has been given for a caption that is part of image with top captions snippet.`
 				);
 			}
 
 			let index: number = 0;
-			let possiblyIndex = imagesIndex[limitedCaption.image];
+			let possiblyIndex = imagesIndex[caption.image];
 
 			if (typeof possiblyIndex === "number") {
 				index = possiblyIndex;
@@ -69,21 +77,26 @@ class ImageService {
 				);
 			}
 
-			if (limitedCaption.rank) {
-				imageWithTopCaptions[index].topCaptions.push(
-					limitedCaption as Required<CaptionWithPoints>
+			if (caption.rank) {
+				imageWithCaptions[index].captions.push(
+					caption as Required<CaptionWithPointsAndUsername>
 				);
 			}
 		}
 
-        let s3 = this.s3;
+		let s3 = this.s3;
 
-		return await Promise.all(imageWithTopCaptions.map(async function (img) {
-            let imageUrl = await s3.getSignedUrl(img.key);
-            let {key, ...imgWithNoKey} = img;
-            let imageWithUrl: ImageWithTopCaptions = {...imgWithNoKey, imageUrl}
-            return imageWithUrl;
-        }));
+		return await Promise.all(
+			imageWithCaptions.map(async function (img) {
+				let imageUrl = await s3.getSignedUrl(img.key);
+				let { key, ...imgWithNoKey } = img;
+				let imageWithUrl: ImageWithCaptions = {
+					...imgWithNoKey,
+					imageUrl,
+				};
+				return imageWithUrl;
+			})
+		);
 	}
 
 	async voteImage(image: string, user: string, type: "like" | "dislike") {
@@ -92,4 +105,4 @@ class ImageService {
 }
 
 export default new ImageService(imageDAO, captionDAO, s3);
-export { ImageService, ImageWithTopCaptions };
+export { ImageService, ImageWithCaptions };

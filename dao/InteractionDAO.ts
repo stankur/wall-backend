@@ -65,13 +65,11 @@ class InteractionDAO {
 					qb.where({ caption, user });
 				});
 		} catch (err) {
-			throw new Error(`There is an error when we are checking if an interaction (like/dislike) 
-             with the image and user provided exists in our database`);
+			throw new Error(`There is an error when we are checking if an interaction (like/dislike) with the image and user provided exists in our database`);
 		}
 
 		if (interactionDataResult.length > 1) {
-			throw new Error(`There is more than one interaction (like/dislike) found in our database with the given 
-            user and image. This shouldn't happen. Please contact the developer to tell about this.`);
+			throw new Error(`There is more than one interaction (like/dislike) found in our database with the given user and image. This shouldn't happen. Please contact the developer to tell about this.`);
 		}
 
 		if (interactionDataResult.length === 0) {

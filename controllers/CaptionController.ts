@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import captionService, {
 	CaptionService,
-	CaptionWithPoints,
+	CaptionWithPointsAndUsername,
 } from "../services/CaptionService";
+import CaptionRequestValidator from "./request_validators/CaptionRequestValidator";
 
 class CaptionController {
 	private captionService: CaptionService;
@@ -12,18 +13,12 @@ class CaptionController {
 	}
 
 	async createCaption(req: Request, res: Response, next: NextFunction) {
-		if (
-			typeof req.body.text !== "string" ||
-			typeof req.body.user !== "string" ||
-			typeof req.params.id !== "string"
-		) {
-			return next(
-				new Error(
-					`either caption text data, user id, or image id was not given`
-				)
-			);
-		}
-
+		try {
+            CaptionRequestValidator.validateCreateCaptionRequest(req);
+        } catch (err) {
+            return next(err);
+        }
+        
 		let id: string;
 
 		try {
@@ -40,17 +35,11 @@ class CaptionController {
 	}
 
 	async voteCaption(req: Request, res: Response, next: NextFunction) {
-		if (
-			typeof req.params.id !== "string" ||
-			typeof req.body.user !== "string" ||
-			!(req.body.type === "like" || req.body.type === "dislike")
-		) {
-			return next(
-				new Error(
-					`either caption id, or user id not given, or interaction type is invalid (could only be like | dislike)`
-				)
-			);
-		}
+        try {
+            CaptionRequestValidator.validateVoteCaptionRequest(req)
+        } catch (err) {
+            return next(err);
+        }
 
 		let id: string = "";
 
@@ -68,7 +57,7 @@ class CaptionController {
 	}
 
 	async getCaptions(req: Request, res: Response, next: NextFunction) {
-		let captions: CaptionWithPoints[] =
+		let captions: CaptionWithPointsAndUsername[] =
 			await this.captionService.getCaptions();
 
 		return res.json({ captions });

@@ -1,4 +1,4 @@
-import captionDAO, { CaptionDAO, CaptionWithPoints } from "../dao/CaptionDAO";
+import captionDAO, { CaptionDAO, CaptionWithPointsAndUsername } from "../dao/CaptionDAO";
 
 class CaptionService {
 	private captionDAO: CaptionDAO;
@@ -21,4 +21,4 @@ class CaptionService {
 }
 
 export default new CaptionService(captionDAO);
-export { CaptionService, CaptionWithPoints };
+export { CaptionService, CaptionWithPointsAndUsername };

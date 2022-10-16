@@ -6,6 +6,7 @@ import interactionDAO, {
 	InteractionPoints,
 } from "./InteractionDAO";
 import { QueryHelper, TypeFixer } from "./helper";
+import { User } from "./UserDAO";
 
 interface Image {
 	id: string;
@@ -19,6 +20,10 @@ interface ImageWithPoints extends Image {
 	likes: number;
 	dislikes: number;
 	points: number;
+}
+
+interface ImageWithPointsAndUsername extends ImageWithPoints {
+	username: string;
 }
 
 class ImageDAO {
@@ -39,11 +44,7 @@ class ImageDAO {
 				.insert({ key, user })
 				.returning("id");
 		} catch (e) {
-			throw new Error(`
-            there is an error while inserting your image 
-            to our database. Either the user credentials attached to your 
-            image doesn't exist or it is our server network issue
-            `);
+			throw new Error(`there is an error while inserting your image to our database. Either the user credentials attached to your image doesn't exist or it is our server network issue`);
 		}
 
 		let [returnedId] = returnedIds;
@@ -52,7 +53,7 @@ class ImageDAO {
 	}
 
 	async getImages() {
-		let returnedImageWithPoints: ImageWithPoints[] = [];
+		let returnedImageWithPoints: ImageWithPointsAndUsername[] = [];
 
 		try {
 			returnedImageWithPoints = await this.interactionDAO
@@ -63,6 +64,7 @@ class ImageDAO {
 					user: "images.user",
 					created_at: "images.created_at",
 					updated_at: "images.updated_at",
+                    username: "users.username",
 					likes: this.db.raw(
 						QueryHelper.convertNullToZero(
 							"interaction_points.likes"
@@ -84,7 +86,8 @@ class ImageDAO {
 					"interaction_points",
 					"images.id",
 					"interaction_points.image"
-				);
+				)
+				.leftJoin<User>("users", "images.user", "users.id");
 		} catch (err) {
 			throw new Error(
 				`There is an error while trying to get the images data from the database: ${
@@ -108,4 +111,4 @@ class ImageDAO {
 }
 
 export default new ImageDAO(db, interactionDAO);
-export { ImageDAO, ImageWithPoints };
+export { ImageDAO, ImageWithPointsAndUsername };

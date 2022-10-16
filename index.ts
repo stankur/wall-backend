@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import findConfig from "find-config";
 import cors from "cors"
 import bodyParser from "body-parser"
+import cookieParser from "cookie-parser"
 
 import apiRouter from "./routes/apiRouter"
 
@@ -11,8 +12,9 @@ dotenv.config({path: findConfig(".env") || undefined});
 const app: Express = express();
 const port = process.env.PORT || 8000;
 
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cors())
+app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
 	res.send("Express + TypeScript Server");
@@ -28,5 +30,7 @@ app.use(function (err, req, res, next) {
 app.listen(port, () => {
 	console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
 });
+
+export default app;
 
 

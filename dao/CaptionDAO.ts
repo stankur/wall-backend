@@ -4,6 +4,7 @@ import interactionDAO, {
 	InteractionDAO,
 	InteractionPoints,
 } from "./InteractionDAO";
+import { User } from "./UserDAO";
 import { QueryHelper, TypeFixer } from "./helper";
 
 interface Caption {
@@ -20,6 +21,10 @@ interface CaptionWithPoints extends Caption {
 	dislikes: number;
 	points: number;
 	rank?: number;
+}
+
+interface CaptionWithPointsAndUsername extends CaptionWithPoints {
+	username: string;
 }
 
 class CaptionDAO {
@@ -39,9 +44,7 @@ class CaptionDAO {
 				.insert({ text, user, image })
 				.returning("id");
 		} catch (err) {
-			throw new Error(`there is an error while inserting your caption 
-            to our database. Either the caption credentials attached to your 
-            image doesn't exist or it is our server network issue`);
+			throw new Error(`there is an error while inserting your caption to our database. Either the caption credentials attached to your image doesn't exist or it is our server network issue`);
 		}
 
 		let [returnedId] = returnedIds;
@@ -57,8 +60,10 @@ class CaptionDAO {
 		);
 	}
 
-	async getCaptions(limitForEachImage: Number | undefined = undefined) {
-		let returnedCaptionWithPoints: CaptionWithPoints[] = [];
+	async getCaptions(
+		limitForEachImage: Number | undefined = undefined
+	): Promise<CaptionWithPointsAndUsername[]> {
+		let returnedCaptionWithPoints: CaptionWithPointsAndUsername[] = [];
 		try {
 			let query: Knex.QueryBuilder = this.interactionDAO
 				._getPointsCTEQuery()
@@ -69,6 +74,7 @@ class CaptionDAO {
 					image: "captions.image",
 					created_at: "captions.created_at",
 					updated_at: "captions.updated_at",
+					username: "users.username",
 					likes: this.db.raw(
 						QueryHelper.convertNullToZero(
 							"interaction_points.likes"
@@ -85,28 +91,25 @@ class CaptionDAO {
 						)
 					),
 				})
-				.modify(function (qb) {
-					if (limitForEachImage) {
-						qb.rank("rank", function () {
-							this.orderBy([
-								{
-									column: "interaction_points.points",
-									order: "desc",
-								},
-								{
-									column: "captions.created_at",
-									order: "desc",
-								},
-							]).partitionBy("captions.image");
-						});
-					}
+				.rank("rank", function () {
+					this.orderBy([
+						{
+							column: "interaction_points.points",
+							order: "desc",
+						},
+						{
+							column: "captions.created_at",
+							order: "desc",
+						},
+					]).partitionBy("captions.image");
 				})
 				.from<Caption>("captions")
 				.leftJoin<InteractionPoints>(
 					"interaction_points",
 					"captions.id",
 					"interaction_points.caption"
-				);
+				)
+				.leftJoin<User>("users", "captions.user", "users.id");
 
 			if (limitForEachImage) {
 				query = this.db
@@ -136,4 +139,4 @@ class CaptionDAO {
 }
 
 export default new CaptionDAO(db, interactionDAO);
-export { Caption, CaptionDAO, CaptionWithPoints };
+export { Caption, CaptionDAO, CaptionWithPointsAndUsername };

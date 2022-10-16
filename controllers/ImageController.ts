@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import imageService, { ImageService, ImageWithTopCaptions } from "../services/ImageService";
+import imageService, { ImageService, ImageWithCaptions } from "../services/ImageService";
 
 const helper = {
 	isImage: (mimetype: string) => {
@@ -17,26 +17,18 @@ class ImageController {
 
 	async createImage(req: Request, res: Response, next: NextFunction) {
 		if (!req.file) {
-			return next(
-				new Error(`
-                no image file has been attached
-                `)
-			);
+			return next(new Error(`no image file has been attached`));
 		}
 
 		if (!helper.isImage(req.file.mimetype)) {
 			return next(
-				new Error(`
-                the file attached is not an image
-                `)
+				new Error(`the file attached is not an image`)
 			);
 		}
 
 		if (typeof req.body.user !== "string") {
 			return next(
-				new Error(`
-                there is no user id given
-                `)
+				new Error(`there is no user id given`)
 			);
 		}
 
@@ -56,8 +48,7 @@ class ImageController {
 	}
 
 	async getImages(req: Request, res: Response, next: NextFunction) {
-
-		let images: ImageWithTopCaptions[] = [];
+		let images: ImageWithCaptions[] = [];
 
 		try {
 			images = await this.imageService.getImages();

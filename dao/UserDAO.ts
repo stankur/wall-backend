@@ -4,7 +4,7 @@ import db from "../db/db";
 interface User {
 	id: string;
 	username: string;
-	password: string;
+	hashed_password: string;
 	created_at: string;
 	updated_at: string;
 }
@@ -16,38 +16,35 @@ class UserDAO {
 		this.db = db;
 	}
 
-	async createUser(username: string, password: string) {
+	async createUser(username: string, hashed_password: string) {
 		let id: string = "";
 
 		try {
 			[id] = await this.db<User>("users")
-				.insert({ username, password })
+				.insert({ username, hashed_password })
 				.returning("id");
 		} catch (err) {
-			throw new Error(`
-            there is an error while inserting your credentials 
-            to our database. Username already esists or 
-            it is our server network issue
+			throw new Error(`there is an error while inserting your credentials to our database. Username already esists or it is our server network issue
             `);
 		}
 
 		return id;
 	}
 
-	async findUser(username: string, password: string) {
-		let userData: Pick<User, "id" | "username" | "created_at"> = {
+	async findUser(username: string) {
+		let userData: Pick<User, "id" | "username" | "hashed_password"> = {
 			id: "",
 			username: "",
-			created_at: "",
+			hashed_password: "",
 		};
 
 		try {
 			[userData] = await this.db<User>("users")
-				.select("id", "username", "created_at")
+				.select("id", "username", "hashed_password")
 				.where({
 					username,
-					password,
 				});
+
 		} catch (err) {
 			throw new Error(
 				"there is an error when finding the user credentials requested from the database"
@@ -63,4 +60,4 @@ class UserDAO {
 }
 
 export default new UserDAO(db);
-export { UserDAO };
+export { UserDAO, User };

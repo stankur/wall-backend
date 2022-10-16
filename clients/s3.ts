@@ -51,8 +51,7 @@ class S3 {
 				})
 			);
 		} catch (e) {
-			throw new Error(`failed to send the image data to external image storage.
-                Message from trying to store the image: ${
+			throw new Error(`failed to send the image data to external image storage. Message from trying to store the image: ${
 					(e as Error).name
 				} || ${(e as Error).message}
             `);
