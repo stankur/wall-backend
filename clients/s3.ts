@@ -4,14 +4,24 @@ import crypto from "crypto";
 
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { Readable, Stream } from "stream";
 
 
 dotenv.config({ path: findConfig(".env") || undefined });
 
-function generateRandom(bytes: number = 32): string {
-	return crypto.randomBytes(bytes).toString("hex");
-}
-
+const helper = {
+	generateRandom: function (bytes: number = 32): string {
+		return crypto.randomBytes(bytes).toString("hex");
+	},
+	streamToBuffer: async function (stream: Stream): Promise<Buffer> {
+		const chunks: Buffer[] = [];
+		return await new Promise((resolve, reject) => {
+			stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+			stream.on("error", (err) => reject(err));
+			stream.on("end", () => resolve(Buffer.concat(chunks)));
+		});
+	},
+};
 class S3 {
 	private s3Client: S3Client;
 	private bucketName: string;
@@ -39,7 +49,7 @@ class S3 {
 		buffer: Buffer,
 		mimeType: string
 	): Promise<string> {
-		const key: string = generateRandom();
+		const key: string = helper.generateRandom();
 
 		try {
 			await this.s3Client.send(
@@ -52,8 +62,8 @@ class S3 {
 			);
 		} catch (e) {
 			throw new Error(`failed to send the image data to external image storage. Message from trying to store the image: ${
-					(e as Error).name
-				} || ${(e as Error).message}
+				(e as Error).name
+			} || ${(e as Error).message}
             `);
 		}
 
@@ -69,6 +79,19 @@ class S3 {
 		return await getSignedUrl(this.s3Client, getObjectCommand, {
 			expiresIn: 3600,
 		});
+	}
+
+	async getBuffer(key: string) {
+		const getObjectCommand: GetObjectCommand = new GetObjectCommand({
+			Bucket: this.bucketName,
+			Key: key,
+		});
+
+		return await helper.streamToBuffer(
+			(
+				await this.s3Client.send(getObjectCommand)
+			).Body as Readable
+		);
 	}
 }
 

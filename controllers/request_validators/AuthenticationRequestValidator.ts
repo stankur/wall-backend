@@ -25,6 +25,17 @@ function AuthenticationRequestValidator() {
 				throw new Error(`password is not 10 - 200 characters`);
 			}
 		},
+
+        validateSignInRequest: function (req: Request) {
+			if (
+				typeof req.body.username !== "string" ||
+				typeof req.body.password !== "string"
+			) {
+				throw new Error(
+					"either username or password is not provided"
+				);
+			}
+        }
 	};
 }
 

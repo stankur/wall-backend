@@ -1,12 +1,17 @@
 import imageDAO, {
 	ImageDAO,
 	ImageWithPointsAndUsername,
+    Image
 } from "../dao/ImageDAO";
 import captionDAO, {
 	CaptionDAO,
 	CaptionWithPointsAndUsername,
 } from "../dao/CaptionDAO";
 import s3, { S3 } from "../clients/s3";
+import ig, {
+	Instagram,
+	MediaRepositoryConfigureResponseRootObject,
+} from "../clients/instagram";
 
 interface ImageWithCaptions extends Omit<ImageWithPointsAndUsername, "key"> {
 	imageUrl: string;
@@ -17,11 +22,18 @@ class ImageService {
 	private imageDAO: ImageDAO;
 	private captionDAO: CaptionDAO;
 	private s3: S3;
+	private ig: Instagram;
 
-	constructor(imageDAO: ImageDAO, captionDAO: CaptionDAO, s3: S3) {
+	constructor(
+		imageDAO: ImageDAO,
+		captionDAO: CaptionDAO,
+		s3: S3,
+		ig: Instagram
+	) {
 		this.imageDAO = imageDAO;
 		this.captionDAO = captionDAO;
 		this.s3 = s3;
+		this.ig = ig;
 	}
 
 	async createImage(buffer: Buffer, mimeType: string, user: string) {
@@ -102,7 +114,16 @@ class ImageService {
 	async voteImage(image: string, user: string, type: "like" | "dislike") {
 		return await this.imageDAO.voteImage(image, user, type);
 	}
+
+	async postToIg(
+		image: string,
+		caption: string
+	): Promise<MediaRepositoryConfigureResponseRootObject> {
+		let foundImage: Image = await this.imageDAO.getImage(image);
+		let imageBuffer: Buffer = await this.s3.getBuffer(foundImage.key);
+		return await this.ig.postPicture(imageBuffer, caption);
+	}
 }
 
-export default new ImageService(imageDAO, captionDAO, s3);
+export default new ImageService(imageDAO, captionDAO, s3, ig);
 export { ImageService, ImageWithCaptions };

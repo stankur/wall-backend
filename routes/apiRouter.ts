@@ -22,8 +22,12 @@ function createRouter(
 	imageController: ImageController,
 	captionController: CaptionController
 ) {
-	router.post("/users", async function (req, res, next) {
+	router.post("/authentication/sign-up", async function (req, res, next) {
 		return await authenticationController.signUp(req, res, next);
+	});
+
+	router.post("/authentication/sign-in", async function (req, res, next) {
+		return await authenticationController.signIn(req, res, next);
 	});
 
 	router.post(
@@ -48,6 +52,11 @@ function createRouter(
 	});
 	router.post("/captions/:id/interactions", async function (req, res, next) {
 		return await captionController.voteCaption(req, res, next);
+	});
+
+	// admin only
+	router.post("/instagram", async function (req, res, next) {
+		return await imageController.postImageToIg(req, res, next);
 	});
 
 	return router;

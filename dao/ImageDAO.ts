@@ -44,7 +44,9 @@ class ImageDAO {
 				.insert({ key, user })
 				.returning("id");
 		} catch (e) {
-			throw new Error(`there is an error while inserting your image to our database. Either the user credentials attached to your image doesn't exist or it is our server network issue`);
+			throw new Error(
+				`there is an error while inserting your image to our database. Either the user credentials attached to your image doesn't exist or it is our server network issue`
+			);
 		}
 
 		let [returnedId] = returnedIds;
@@ -64,7 +66,7 @@ class ImageDAO {
 					user: "images.user",
 					created_at: "images.created_at",
 					updated_at: "images.updated_at",
-                    username: "users.username",
+					username: "users.username",
 					likes: this.db.raw(
 						QueryHelper.convertNullToZero(
 							"interaction_points.likes"
@@ -105,10 +107,38 @@ class ImageDAO {
 		return returnedImageWithPoints;
 	}
 
+	async getImage(image: string): Promise<Image> {
+		let returnedImages: Image[] = [];
+
+		try {
+			returnedImages = await this.db<Image>("images")
+				.select("*")
+				.where({ id: image });
+		} catch (err) {
+			throw new Error(
+				`There is an error while trying to get the image data from the database: ${
+					(err as Error).message
+				}`
+			);
+		}
+
+		if (returnedImages.length === 0) {
+			throw new Error("no image with the given id is found");
+		}
+
+		if (returnedImages.length > 1) {
+			throw new Error(
+				"This is an internal error, please contact to inform about this error. more than 1 images witht he given id has been found."
+			);
+		}
+
+		return returnedImages[0];
+	}
+
 	async voteImage(image: string, user: string, type: "like" | "dislike") {
 		return await this.interactionDAO.createInteraction(image, user, type);
 	}
 }
 
 export default new ImageDAO(db, interactionDAO);
-export { ImageDAO, ImageWithPointsAndUsername };
+export { ImageDAO, ImageWithPointsAndUsername, Image };

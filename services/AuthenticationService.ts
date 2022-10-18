@@ -9,15 +9,23 @@ class AuthenticationService {
 	}
 
 	// assumes valid username and password
-	async logIn(username: string, password: string) {
-		const foundUser = this.userService.findUser(username, password);
-		return jwt.getToken(foundUser);
+	async signIn(username: string, password: string) {
+		const foundUser = await this.userService.findUser(username, password);
+		return {
+			token: await jwt.getToken(foundUser),
+			username,
+			id: foundUser.id,
+		};
 	}
 
 	// assumes valid username and password
 	async signUp(username: string, password: string) {
 		let id: string = await this.userService.createUser(username, password);
-		return { token: await jwt.getToken({ username, id }), username };
+		return {
+			token: await jwt.getToken({ username, id }),
+			username,
+			id,
+		};
 	}
 }
 

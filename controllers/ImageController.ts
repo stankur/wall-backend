@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import imageService, { ImageService, ImageWithCaptions } from "../services/ImageService";
+import imageService, {
+	ImageService,
+	ImageWithCaptions,
+} from "../services/ImageService";
+import { MediaRepositoryConfigureResponseRootObject } from "../clients/instagram";
 
 const helper = {
 	isImage: (mimetype: string) => {
@@ -21,15 +25,11 @@ class ImageController {
 		}
 
 		if (!helper.isImage(req.file.mimetype)) {
-			return next(
-				new Error(`the file attached is not an image`)
-			);
+			return next(new Error(`the file attached is not an image`));
 		}
 
 		if (typeof req.body.user !== "string") {
-			return next(
-				new Error(`there is no user id given`)
-			);
+			return next(new Error(`there is no user id given`));
 		}
 
 		let id: string = "";
@@ -85,6 +85,29 @@ class ImageController {
 		}
 
 		return res.json({ id });
+	}
+
+	// only admin must be able to access
+	async postImageToIg(req: Request, res: Response, next: NextFunction) {
+		if (
+			typeof req.body.image !== "string" ||
+			typeof req.body.caption !== "string"
+		) {
+			new Error(`either image id or caption text is not given`);
+		}
+
+		let publishResult: MediaRepositoryConfigureResponseRootObject;
+
+		try {
+			publishResult = await this.imageService.postToIg(
+				req.body.image,
+				req.body.caption
+			);
+		} catch (err) {
+			return next(err);
+		}
+
+		return res.json(publishResult);
 	}
 }
 
