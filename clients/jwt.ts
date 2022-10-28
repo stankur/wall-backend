@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 
 class JWT {
 	private secret: string;
+    
 
 	constructor(secret: string) {
 		this.secret = secret;
@@ -20,6 +21,16 @@ class JWT {
 
 		return jwt.sign(payload, this.secret);
 	}
+
+    decode(token: string) {
+        let decoded: jwt.JwtPayload | string = jwt.verify(token, this.secret);
+
+        if (typeof decoded === "string") {
+            throw new Error("jwt token is expected to contain a payload, but gives a string when decoded")
+        }
+
+        return decoded;
+    }
 }
 
 export default new JWT(process.env.HASHING_SECRET as string);

@@ -13,8 +13,14 @@ const app: Express = express();
 const port = process.env.PORT || 8000;
 
 app.use(cookieParser());
+app.use(
+	cors({
+		origin: process.env.FRONTEND_URL,
+		credentials: true,
+	})
+);
+app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
 	res.send("Express + TypeScript Server");

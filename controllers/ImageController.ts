@@ -3,7 +3,9 @@ import imageService, {
 	ImageService,
 	ImageWithCaptions,
 } from "../services/ImageService";
+import authenticationService, {AuthenticationService} from "../services/AuthenticationService";
 import { MediaRepositoryConfigureResponseRootObject } from "../clients/instagram";
+import { JwtPayload } from "jsonwebtoken";
 
 const helper = {
 	isImage: (mimetype: string) => {
@@ -14,11 +16,17 @@ const helper = {
 
 class ImageController {
 	private imageService: ImageService;
+	private authenticationService: AuthenticationService;
 
-	constructor(imageService: ImageService) {
+	constructor(
+		imageService: ImageService,
+		authenticationService: AuthenticationService
+	) {
 		this.imageService = imageService;
+        this.authenticationService = authenticationService
 	}
 
+	// assumes user is authenticated
 	async createImage(req: Request, res: Response, next: NextFunction) {
 		if (!req.file) {
 			return next(new Error(`no image file has been attached`));
@@ -28,9 +36,9 @@ class ImageController {
 			return next(new Error(`the file attached is not an image`));
 		}
 
-		if (typeof req.body.user !== "string") {
-			return next(new Error(`there is no user id given`));
-		}
+		let payload: JwtPayload;
+
+		payload = this.authenticationService.decodeToken(req.cookies.token);
 
 		let id: string = "";
 
@@ -38,7 +46,7 @@ class ImageController {
 			id = await this.imageService.createImage(
 				req.file.buffer,
 				req.file.mimetype,
-				req.body.user
+				payload.id
 			);
 		} catch (err) {
 			return next(err);
@@ -111,5 +119,5 @@ class ImageController {
 	}
 }
 
-export default new ImageController(imageService);
+export default new ImageController(imageService, authenticationService);
 export { ImageController };

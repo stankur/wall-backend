@@ -6,7 +6,20 @@ import AuthenticationRequestValidator from "./request_validators/AuthenticationR
 
 import dotenv from "dotenv";
 import findConfig from "find-config";
+import { JwtPayload } from "jsonwebtoken";
+import Errors from "../constants/Errors";
 dotenv.config({ path: findConfig(".env") || undefined });
+
+const CookieHelper = {
+	tokenCookieConfig: (cookieMaxDays: number) => ({
+		httpOnly: true,
+		maxAge: 1000 * 60 * 60 * 24 * cookieMaxDays,
+		sameSite: "none" as "none",
+		secure: true,
+	}),
+};
+
+
 
 class AuthenticationController {
 	private authenticationService: AuthenticationService;
@@ -43,15 +56,16 @@ class AuthenticationController {
 			return next(err);
 		}
 
-		res.cookie("token", authenticationData.token, {
-			httpOnly: true,
-			maxAge: 60 * 60 * 24 * this.cookieMaxDays,
-		});
-
-		return res.json({
-			username: authenticationData.username,
-			id: authenticationData.id,
-		});
+		return res
+			.cookie(
+				"token",
+				authenticationData.token,
+				CookieHelper.tokenCookieConfig(this.cookieMaxDays)
+			)
+			.json({
+				username: authenticationData.username,
+				id: authenticationData.id,
+			});
 	}
 
 	// assumes user is not signed in
@@ -76,16 +90,34 @@ class AuthenticationController {
 			return next(err);
 		}
 
-		res.cookie("token", authenticationData.token, {
-			httpOnly: true,
-			maxAge: 60 * 60 * 24 * this.cookieMaxDays,
-		});
-
-		return res.json({
-			username: authenticationData.username,
-			id: authenticationData.id,
-		});
+		return res
+			.cookie(
+				"token",
+				authenticationData.token,
+				CookieHelper.tokenCookieConfig(this.cookieMaxDays)
+			)
+			.json({
+				username: authenticationData.username,
+				id: authenticationData.id,
+			});
 	}
+
+	// assumes user is authenticated
+	getUserData(req: Request, res: Response, next: NextFunction) {
+		let payload: JwtPayload;
+
+		payload = this.authenticationService.decodeToken(req.cookies.token);
+
+		let { iat, ...payloadWithoutIAT } = payload;
+
+		return res.json(payloadWithoutIAT);
+	}
+
+    // assumes user is authenticated
+	signOut(req: Request, res: Response, next: NextFunction) {
+        res.cookie("token", "", {maxAge: 0});
+        return next(new Error(Errors.UNAUTHENTICATED))
+    }
 }
 
 export default new AuthenticationController(

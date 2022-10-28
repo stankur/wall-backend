@@ -27,6 +27,12 @@ class AuthenticationService {
 			id,
 		};
 	}
+
+    decodeToken(token: string) {
+        return jwt.decode(token);
+    }
+
+
 }
 
 export default new AuthenticationService(userService);

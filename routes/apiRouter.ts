@@ -10,6 +10,10 @@ import captionController, {
 	CaptionController,
 } from "../controllers/CaptionController";
 
+import authenticationMiddleware, {
+	AuthenticationMiddleware,
+} from "../middlewares/AuthenticationMiddleware";
+
 import multer, { StorageEngine, Multer } from "multer";
 
 const storage: StorageEngine = multer.memoryStorage();
@@ -20,9 +24,20 @@ const router: Router = Router();
 function createRouter(
 	authenticationController: AuthenticationController,
 	imageController: ImageController,
-	captionController: CaptionController
+	captionController: CaptionController,
+	authenticationMiddleware: AuthenticationMiddleware
 ) {
+	router.get(
+		"/authentication",
+		function (req, res, next) {
+            return authenticationMiddleware.checkAuthenticated(req, res, next);
+        },
+		function (req, res, next) {
+			return authenticationController.getUserData(req, res, next);
+		}
+	);
 	router.post("/authentication/sign-up", async function (req, res, next) {
+		console.log("got to the controller layer of POST /authentication");
 		return await authenticationController.signUp(req, res, next);
 	});
 
@@ -30,8 +45,22 @@ function createRouter(
 		return await authenticationController.signIn(req, res, next);
 	});
 
+    router.post(
+		"/authentication/sign-out",
+		function (req, res, next) {
+			return authenticationMiddleware.checkAuthenticated(req, res, next);
+		},
+		function (req, res, next) {
+			return authenticationController.signOut(req, res, next);
+		}
+	);
+
+	// assumes that image submitted is jpg/jpeg with proper aspect ratio
 	router.post(
 		"/images",
+		function (req, res, next) {
+			return authenticationMiddleware.checkAuthenticated(req, res, next);
+		},
 		upload.single("image"),
 		async function (req, res, next) {
 			return await imageController.createImage(req, res, next);
@@ -65,6 +94,7 @@ function createRouter(
 export default createRouter(
 	authenticationController,
 	imageController,
-	captionController
+	captionController,
+    authenticationMiddleware
 );
 export { createRouter };

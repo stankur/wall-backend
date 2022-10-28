@@ -1,0 +1,3 @@
+export default {
+	UNAUTHENTICATED: "YOU ARE NOT SIGNED IN",
+};
