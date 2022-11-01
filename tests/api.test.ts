@@ -26,7 +26,7 @@ afterAll(async () => {
 	await pgContainer.stop();
 });
 
-describe("Api Tests", () => {
+describe("Route Tests", () => {
 	test("expects true to be true", function (done) {
 		expect(true).toBeTruthy();
 		done();

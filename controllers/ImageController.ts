@@ -2,10 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import imageService, {
 	ImageService,
 	ImageWithCaptions,
+    ImageWithCaptionsAndUserInteractions,
 } from "../services/ImageService";
 import authenticationService, {AuthenticationService} from "../services/AuthenticationService";
 import { MediaRepositoryConfigureResponseRootObject } from "../clients/instagram";
 import { JwtPayload } from "jsonwebtoken";
+import ImageRequestValidator from "./request_validators/ImageRequestValidator";
 
 const helper = {
 	isImage: (mimetype: string) => {
@@ -23,7 +25,7 @@ class ImageController {
 		authenticationService: AuthenticationService
 	) {
 		this.imageService = imageService;
-        this.authenticationService = authenticationService
+		this.authenticationService = authenticationService;
 	}
 
 	// assumes user is authenticated
@@ -55,6 +57,7 @@ class ImageController {
 		return res.json({ id });
 	}
 
+	// assumes user is NOT authenticated
 	async getImages(req: Request, res: Response, next: NextFunction) {
 		let images: ImageWithCaptions[] = [];
 
@@ -67,32 +70,56 @@ class ImageController {
 		return res.json({ images });
 	}
 
-	async voteImage(req: Request, res: Response, next: NextFunction) {
-		if (
-			typeof req.params.id !== "string" ||
-			typeof req.body.user !== "string" ||
-			!(req.body.type === "like" || req.body.type === "dislike")
-		) {
-			return next(
-				new Error(
-					`either image id or user id is not given or vote type invalid (vote must be like | dislike)`
-				)
-			);
-		}
+	// assumes user is authenticated
+	async getImagesAndUserInteractions(
+		req: Request,
+		res: Response,
+		next: NextFunction
+	) {
+		let payload: JwtPayload;
 
-		let id: string = "";
+		payload = this.authenticationService.decodeToken(req.cookies.token);
+
+		let images: ImageWithCaptionsAndUserInteractions[] = [];
 
 		try {
-			id = await this.imageService.voteImage(
+			images = (await this.imageService.getImages(
+				payload.id
+			)) as ImageWithCaptionsAndUserInteractions[];
+		} catch (err) {
+			return next(err);
+		}
+
+		return res.json({ images });
+	}
+
+	// assumes user is authenticated
+	async voteImage(req: Request, res: Response, next: NextFunction) {
+		try {
+			ImageRequestValidator.validateVoteImageRequest(req);
+		} catch (err) {
+			return next(err);
+		}
+
+		let payload: JwtPayload;
+		payload = this.authenticationService.decodeToken(req.cookies.token);
+		let idOrDeletedNums: string | number = "";
+
+		try {
+			idOrDeletedNums = await this.imageService.voteImage(
 				req.params.id,
-				req.body.user,
+				payload.id,
 				req.body.type
 			);
 		} catch (err) {
 			return next(err);
 		}
 
-		return res.json({ id });
+		if (req.body.type === null) {
+			return res.json({ deleted: idOrDeletedNums });
+		}
+
+		return res.json({ id: idOrDeletedNums });
 	}
 
 	// only admin must be able to access

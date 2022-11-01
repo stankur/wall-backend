@@ -25,7 +25,6 @@ class Instagram {
 
 	async logIn() {
 		await this.ig.simulate.preLoginFlow();
-        console.log("pre login completed")
 		this.loggedInUser = await this.ig.account.login(
 			this.username,
 			this.password

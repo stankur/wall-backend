@@ -7,31 +7,68 @@ import captionDAO, {
 	CaptionDAO,
 	CaptionWithPointsAndUsername,
 } from "../dao/CaptionDAO";
+import interactionDAO, {
+    InteractionDAO,
+} from "../dao/InteractionDAO"
 import s3, { S3 } from "../clients/s3";
 import ig, {
 	Instagram,
 	MediaRepositoryConfigureResponseRootObject,
 } from "../clients/instagram";
 
-interface ImageWithCaptions extends Omit<ImageWithPointsAndUsername, "key"> {
-	imageUrl: string;
+import { stitch, createIndexes } from "../helpers/helper";
+
+interface ImageWithCaptionsNoUrl extends ImageWithPointsAndUsername {
 	captions: Required<CaptionWithPointsAndUsername>[];
 }
+
+interface ImageWithCaptions extends Omit<ImageWithCaptionsNoUrl, "key"> {
+	imageUrl: string;
+}
+
+// image interfaces with user interactions
+interface WithInteraction {
+	interaction: "like" | "dislike" | null;
+}
+
+interface ImageWithPointsAndUserInteractions
+	extends ImageWithPointsAndUsername,
+		WithInteraction {}
+
+interface CaptionWithPointsAndUserInteractions
+	extends CaptionWithPointsAndUsername,
+		WithInteraction {}
+
+interface ImageWithCaptionsAndUserInteractionsNoUrl
+	extends ImageWithPointsAndUserInteractions {
+	captions: Required<CaptionWithPointsAndUserInteractions>[];
+}
+
+
+interface ImageWithCaptionsAndUserInteractions
+	extends Omit<ImageWithCaptionsAndUserInteractionsNoUrl, "key"> {
+	imageUrl: string;
+}
+
+// end of image interfaces with user interactions
 
 class ImageService {
 	private imageDAO: ImageDAO;
 	private captionDAO: CaptionDAO;
+	private interactionDAO: InteractionDAO;
 	private s3: S3;
 	private ig: Instagram;
 
 	constructor(
 		imageDAO: ImageDAO,
 		captionDAO: CaptionDAO,
+		interactionDAO: InteractionDAO,
 		s3: S3,
 		ig: Instagram
 	) {
 		this.imageDAO = imageDAO;
 		this.captionDAO = captionDAO;
+		this.interactionDAO = interactionDAO;
 		this.s3 = s3;
 		this.ig = ig;
 	}
@@ -46,63 +83,121 @@ class ImageService {
 		return id;
 	}
 
-	async getImages(): Promise<ImageWithCaptions[]> {
+	async _convertToHaveUrl() {}
+
+	async getImages(
+		user?: string
+	): Promise<ImageWithCaptions[] | ImageWithCaptionsAndUserInteractions[]> {
 		let images: ImageWithPointsAndUsername[] =
 			await this.imageDAO.getImages();
 		let captions: CaptionWithPointsAndUsername[] =
 			await this.captionDAO.getCaptions();
 
-		let imagesIndex: Record<string, number> = {};
+		let imageNoUrl:
+			| ImageWithCaptionsNoUrl[]
+			| ImageWithCaptionsAndUserInteractionsNoUrl[] = [];
 
-		interface ImageWithCaptionsNoUrl extends ImageWithPointsAndUsername {
-			captions: Required<CaptionWithPointsAndUsername>[];
-		}
+		if (user) {
+			let userInteractions =
+				await this.interactionDAO.getUserInteractions(user);
 
-		let imageWithCaptions: ImageWithCaptionsNoUrl[] = images.map(function (
-			imageWithPoints,
-			index
-		) {
-			if (imageWithPoints.id in imagesIndex) {
-				throw new Error(
-					`This is an internal error. Please contact to inform about this. A unique image that is upposed to occur only once after the points have been calculated somehow appeared more than once.`
-				);
-			}
-			imagesIndex[imageWithPoints.id] = index;
-			return { ...imageWithPoints, captions: [] };
-		});
+			let imagesWithPointsAndUserInteractions: ImageWithPointsAndUserInteractions[] =
+				images.map(function (image) {
+					return { ...image, interaction: null };
+				});
+			let imageIndexes = createIndexes(
+				imagesWithPointsAndUserInteractions
+			);
 
-		for (let caption of captions) {
-			if (typeof caption.rank === "undefined") {
-				throw new Error(
-					`This is an internal error. Please contact to inform about this. no rank information has been given for a caption that is part of image with top captions snippet.`
-				);
-			}
+			let captionsWithPointsAndUserInteractions: CaptionWithPointsAndUserInteractions[] =
+				captions.map(function (caption) {
+					return { ...caption, interaction: null };
+				});
 
-			let index: number = 0;
-			let possiblyIndex = imagesIndex[caption.image];
+			let captionIndexes = createIndexes(
+				captionsWithPointsAndUserInteractions
+			);
 
-			if (typeof possiblyIndex === "number") {
-				index = possiblyIndex;
-			} else {
-				throw new Error(
-					`This is an internal error. Please contact to inform about this. Image Service found a caption whose image id's position in the array is not known while trying to merge images and top captions.`
-				);
-			}
+			userInteractions.map(function (userInteraction) {
+				let userInteractionCaption = userInteraction.caption;
+				let userInteractionImage = userInteraction.image;
+				if (!userInteractionCaption && !userInteractionImage) {
+					throw new Error(
+						"this is an internal error, please contact us about this. there is an interaction that is not associated to any post"
+					);
+				}
+				if (userInteractionCaption && userInteractionImage) {
+					throw new Error(
+						"this is an internal error, please contact us about this. there is an interaction that is not associated more than 1 type of post"
+					);
+				}
 
-			if (caption.rank) {
-				imageWithCaptions[index].captions.push(
-					caption as Required<CaptionWithPointsAndUsername>
-				);
-			}
+				if (userInteractionCaption) {
+					if (!(userInteractionCaption in captionIndexes)) {
+						throw new Error(
+							"this is an internal error, please contact us about this. there is an interaction for a caption that does not exist"
+						);
+					}
+
+					let index: number = captionIndexes[userInteractionCaption];
+					let currCaption =
+						captionsWithPointsAndUserInteractions[index];
+
+					if (currCaption.interaction !== null) {
+						throw new Error(
+							"this is an internal error, please contact us about this. there is a caption whose interaction is set twice."
+						);
+					}
+
+					currCaption.interaction = userInteraction.type;
+					return;
+				}
+
+				if (userInteractionImage) {
+					if (!(userInteractionImage in imageIndexes)) {
+						throw new Error(
+							"this is an internal error, please contact us about this. there is an interaction for an image that does not exist"
+						);
+					}
+					let index: number = imageIndexes[userInteractionImage];
+
+					let currImage = imagesWithPointsAndUserInteractions[index];
+
+					if (currImage.interaction !== null) {
+						throw new Error(
+							"this is an internal error, please contact us about this. there is an image whose interaction is set twice."
+						);
+					}
+
+					currImage.interaction = userInteraction.type;
+				}
+			});
+
+			imageNoUrl = stitch<
+				ImageWithPointsAndUserInteractions,
+				CaptionWithPointsAndUserInteractions
+			>(
+				imagesWithPointsAndUserInteractions,
+				captionsWithPointsAndUserInteractions,
+				"image",
+				"captions"
+			) as any;
+		} else {
+			imageNoUrl = stitch<
+				ImageWithPointsAndUsername,
+				CaptionWithPointsAndUsername
+			>(images, captions, "image", "captions") as any;
 		}
 
 		let s3 = this.s3;
 
 		return await Promise.all(
-			imageWithCaptions.map(async function (img) {
+			imageNoUrl.map(async function (img) {
 				let imageUrl = await s3.getSignedUrl(img.key);
 				let { key, ...imgWithNoKey } = img;
-				let imageWithUrl: ImageWithCaptions = {
+				let imageWithUrl:
+					| ImageWithCaptions
+					| ImageWithCaptionsAndUserInteractions = {
 					...imgWithNoKey,
 					imageUrl,
 				};
@@ -111,9 +206,13 @@ class ImageService {
 		);
 	}
 
-	async voteImage(image: string, user: string, type: "like" | "dislike") {
-		return await this.imageDAO.voteImage(image, user, type);
+	async voteImage(image: string, user: string, type: "like" | "dislike"| null) {
+        if (type === null) {
+            return await this.imageDAO.deleteInteraction(image, user)
+        }
+		return await this.imageDAO.createInteraction(image, user, type);
 	}
+
 
 	async postToIg(
 		image: string,
@@ -125,5 +224,5 @@ class ImageService {
 	}
 }
 
-export default new ImageService(imageDAO, captionDAO, s3, ig);
-export { ImageService, ImageWithCaptions };
+export default new ImageService(imageDAO, captionDAO, interactionDAO, s3, ig);
+export { ImageService, ImageWithCaptions, ImageWithCaptionsAndUserInteractions };

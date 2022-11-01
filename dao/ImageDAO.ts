@@ -135,8 +135,12 @@ class ImageDAO {
 		return returnedImages[0];
 	}
 
-	async voteImage(image: string, user: string, type: "like" | "dislike") {
+	async createInteraction(image: string, user: string, type: "like" | "dislike") {
 		return await this.interactionDAO.createInteraction(image, user, type);
+	}
+
+	async deleteInteraction(image: string, user: string) {
+		return await this.interactionDAO.deleteInteraction(image, user);
 	}
 }
 

@@ -19,11 +19,15 @@ class AuthenticationMiddleware {
 		) {
 			try {
 				this.authenticationService.decodeToken(req.cookies.token);
+
 				return next();
 			} catch (err) {
+				this.authenticationService.decodeToken(req.cookies.token);
+
 				return next(err);
 			}
 		}
+
 		return next(new Error(Errors.UNAUTHENTICATED));
 	}
 }

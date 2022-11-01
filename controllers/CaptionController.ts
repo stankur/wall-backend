@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from "express";
+import { JwtPayload } from "jsonwebtoken";
+import authenticationService, { AuthenticationService } from "../services/AuthenticationService";
 import captionService, {
 	CaptionService,
 	CaptionWithPointsAndUsername,
@@ -7,24 +9,33 @@ import CaptionRequestValidator from "./request_validators/CaptionRequestValidato
 
 class CaptionController {
 	private captionService: CaptionService;
+	private authenticationService: AuthenticationService;
 
-	constructor(captionService: CaptionService) {
+	constructor(
+		captionService: CaptionService,
+		authenticationService: AuthenticationService
+	) {
 		this.captionService = captionService;
+        this.authenticationService = authenticationService;
 	}
 
+	// assumes user is authenticated
 	async createCaption(req: Request, res: Response, next: NextFunction) {
 		try {
-            CaptionRequestValidator.validateCreateCaptionRequest(req);
-        } catch (err) {
-            return next(err);
-        }
-        
+			CaptionRequestValidator.validateCreateCaptionRequest(req);
+		} catch (err) {
+			return next(err);
+		}
+
 		let id: string;
+
+		let payload: JwtPayload;
+		payload = this.authenticationService.decodeToken(req.cookies.token);
 
 		try {
 			id = await this.captionService.createCaption(
 				req.body.text,
-				req.body.user,
+				payload.id,
 				req.params.id
 			);
 		} catch (err) {
@@ -34,26 +45,34 @@ class CaptionController {
 		return res.json({ id });
 	}
 
+    // assumes user is authenticated
 	async voteCaption(req: Request, res: Response, next: NextFunction) {
-        try {
-            CaptionRequestValidator.validateVoteCaptionRequest(req)
-        } catch (err) {
-            return next(err);
-        }
+		try {
+			CaptionRequestValidator.validateVoteCaptionRequest(req);
+		} catch (err) {
+			return next(err);
+		}
 
-		let id: string = "";
+        let payload: JwtPayload;
+		payload = this.authenticationService.decodeToken(req.cookies.token);
+
+		let idOrDeletedNums: string | number = "";
 
 		try {
-			id = await this.captionService.voteCaption(
+			idOrDeletedNums = await this.captionService.voteCaption(
 				req.params.id,
-				req.body.user,
+				payload.id,
 				req.body.type
 			);
 		} catch (err) {
 			return next(err);
 		}
 
-		return res.json({ id });
+		if (req.body.type === null) {
+			return res.json({ deleted: idOrDeletedNums });
+		}
+
+		return res.json({ id: idOrDeletedNums });
 	}
 
 	async getCaptions(req: Request, res: Response, next: NextFunction) {
@@ -64,5 +83,5 @@ class CaptionController {
 	}
 }
 
-export default new CaptionController(captionService);
+export default new CaptionController(captionService, authenticationService);
 export { CaptionController };

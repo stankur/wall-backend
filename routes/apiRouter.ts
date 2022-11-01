@@ -13,6 +13,7 @@ import captionController, {
 import authenticationMiddleware, {
 	AuthenticationMiddleware,
 } from "../middlewares/AuthenticationMiddleware";
+import UtilMiddlewares from "../middlewares/UtilMiddlewares";
 
 import multer, { StorageEngine, Multer } from "multer";
 
@@ -37,7 +38,6 @@ function createRouter(
 		}
 	);
 	router.post("/authentication/sign-up", async function (req, res, next) {
-		console.log("got to the controller layer of POST /authentication");
 		return await authenticationController.signUp(req, res, next);
 	});
 
@@ -66,22 +66,49 @@ function createRouter(
 			return await imageController.createImage(req, res, next);
 		}
 	);
-	router.get("/images", async function (req, res, next) {
-		return await imageController.getImages(req, res, next);
-	});
-	router.post("/images/:id/captions", async function (req, res, next) {
-		return await captionController.createCaption(req, res, next);
-	});
-	router.post("/images/:id/interactions", async function (req, res, next) {
-		return await imageController.voteImage(req, res, next);
-	});
+
+	router.get(
+		"/images",
+		UtilMiddlewares.ifElse(
+			authenticationMiddleware.checkAuthenticated.bind(
+				authenticationMiddleware
+			),
+			imageController.getImagesAndUserInteractions.bind(imageController),
+			imageController.getImages.bind(imageController)
+		)
+	);
+
+	router.post(
+		"/images/:id/captions",
+		function (req, res, next) {
+			return authenticationMiddleware.checkAuthenticated(req, res, next);
+		},
+		async function (req, res, next) {
+			return await captionController.createCaption(req, res, next);
+		}
+	);
+	router.post(
+		"/images/:id/interactions",
+		function (req, res, next) {
+			return authenticationMiddleware.checkAuthenticated(req, res, next);
+		},
+		async function (req, res, next) {
+			return await imageController.voteImage(req, res, next);
+		}
+	);
 
 	router.get("/captions", async function (req, res, next) {
 		return await captionController.getCaptions(req, res, next);
 	});
-	router.post("/captions/:id/interactions", async function (req, res, next) {
-		return await captionController.voteCaption(req, res, next);
-	});
+	router.post(
+		"/captions/:id/interactions",
+		function (req, res, next) {
+			return authenticationMiddleware.checkAuthenticated(req, res, next);
+		},
+		async function (req, res, next) {
+			return await captionController.voteCaption(req, res, next);
+		}
+	);
 
 	// admin only
 	router.post("/instagram", async function (req, res, next) {

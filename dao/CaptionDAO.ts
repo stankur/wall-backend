@@ -44,14 +44,20 @@ class CaptionDAO {
 				.insert({ text, user, image })
 				.returning("id");
 		} catch (err) {
-			throw new Error(`there is an error while inserting your caption to our database. Either the caption credentials attached to your image doesn't exist or it is our server network issue`);
+			throw new Error(
+				`there is an error while inserting your caption to our database. Either the caption credentials attached to your image doesn't exist or it is our server network issue`
+			);
 		}
 
 		let [returnedId] = returnedIds;
 		return returnedId["id"];
 	}
 
-	async voteCaption(caption: string, user: string, type: "like" | "dislike") {
+	async createInteraction(
+		caption: string,
+		user: string,
+		type: "like" | "dislike"
+	) {
 		return await this.interactionDAO.createInteraction(
 			undefined,
 			user,
@@ -60,8 +66,17 @@ class CaptionDAO {
 		);
 	}
 
+	async deleteInteraction(caption: string, user: string) {
+		return await this.interactionDAO.deleteInteraction(
+			undefined,
+			user,
+			caption
+		);
+	}
+
 	async getCaptions(
-		limitForEachImage: Number | undefined = undefined
+		limitForEachImage?: number,
+		user?: string
 	): Promise<CaptionWithPointsAndUsername[]> {
 		let returnedCaptionWithPoints: CaptionWithPointsAndUsername[] = [];
 		try {

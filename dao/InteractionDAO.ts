@@ -20,6 +20,12 @@ interface InteractionPoints {
 	points: number;
 }
 
+interface UserInteraction {
+	image: string | null;
+	caption: string | null;
+	type: "like" | "dislike";
+}
+
 const helper = {
 	findComplement: function (type: "like" | "dislike") {
 		if (type === "like") {
@@ -65,11 +71,15 @@ class InteractionDAO {
 					qb.where({ caption, user });
 				});
 		} catch (err) {
-			throw new Error(`There is an error when we are checking if an interaction (like/dislike) with the image and user provided exists in our database`);
+			throw new Error(
+				`There is an error when we are checking if an interaction (like/dislike) with the image/caption and user provided exists in our database, ${(err as Error).message}`
+			);
 		}
 
 		if (interactionDataResult.length > 1) {
-			throw new Error(`There is more than one interaction (like/dislike) found in our database with the given user and image. This shouldn't happen. Please contact the developer to tell about this.`);
+			throw new Error(
+				`There is more than one interaction (like/dislike) found in our database with the given user and image. This shouldn't happen. Please contact the developer to tell about this.`
+			);
 		}
 
 		if (interactionDataResult.length === 0) {
@@ -113,6 +123,45 @@ class InteractionDAO {
 
 		let [returnedId] = returnedIds;
 		return returnedId["id"];
+	}
+
+	async deleteInteraction(
+		image: string | undefined,
+		user: string,
+		caption: string | undefined = undefined
+	) {
+		if (!image && !caption) {
+			throw new Error(
+				`either image or caption data must be given to delete an interaction (like/dislike)`
+			);
+		}
+
+		if (image && caption) {
+			throw new Error(
+				"only one of either image and caption couldd be specified to delete an interaction (like/dislike)"
+			);
+		}
+
+		let deleted: number = 0;
+
+		try {
+			deleted = await this.db<Interaction>("interactions").del().modify(function (qb) {
+				if (image) {
+					qb.where({ image, user });
+					return;
+				}
+
+				qb.where({ caption, user });
+			});
+		} catch (err) {
+			throw new Error(
+				`There is an error while trying to delete the interaction (like/dislike) from our database. ${
+					(err as Error).message
+				}`
+			);
+		}
+
+		return deleted;
 	}
 
 	_getPointsCTEQuery() {
@@ -198,9 +247,9 @@ class InteractionDAO {
 								}
 							)
 							.whereNotNull("interaction_likes.image")
-							.orWhere(function() {
-                                this.whereNotNull("interaction_dislikes.image");
-                            })
+							.orWhere(function () {
+								this.whereNotNull("interaction_dislikes.image");
+							})
 							.union(function () {
 								this.select(selectedFields)
 									.from<InteractionLikes>("interaction_likes")
@@ -225,7 +274,25 @@ class InteractionDAO {
 					)
 			);
 	}
+
+	async getUserInteractions(user: string) {
+		let interactions: UserInteraction[] = [];
+
+		try {
+			interactions = await this.db<Interaction>("interactions")
+				.select("image", "caption", "type")
+				.where("user", "=", user);
+		} catch (err) {
+			throw new Error(
+				`There is an error while trying to get your interactions (likes/dislikes) data from the database: ${
+					(err as Error).message
+				}`
+			);
+		}
+
+		return interactions;
+	}
 }
 
 export default new InteractionDAO(db);
-export { InteractionDAO, InteractionPoints };
+export { InteractionDAO, InteractionPoints, UserInteraction };

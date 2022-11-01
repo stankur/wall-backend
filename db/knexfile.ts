@@ -4,7 +4,6 @@ import findConfig from "find-config";
 
 dotenv.config({ path: findConfig(".env") || undefined });
 
-console.log("password in knexfile ts: " + process.env.DB_PASSWORD);
 
 type KnexConfig = { [key: string]: Knex.Config }
 
