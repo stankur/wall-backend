@@ -1,12 +1,6 @@
 const QueryHelper = {
 	convertNullToZero: function (column: string) {
-		return `(
-            CASE
-            WHEN ${column} IS NULL
-            THEN 0
-            ELSE ${column}
-            END
-        )`;
+		return `COALESCE(${column}, 0)`;
 	},
 	whicheverNotNull: function (...columns: string[]) {
 		return `COALESCE(${columns.join(", ")})`;

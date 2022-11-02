@@ -106,18 +106,6 @@ class CaptionDAO {
 						)
 					),
 				})
-				.rank("rank", function () {
-					this.orderBy([
-						{
-							column: "interaction_points.points",
-							order: "desc",
-						},
-						{
-							column: "captions.created_at",
-							order: "desc",
-						},
-					]).partitionBy("captions.image");
-				})
 				.from<Caption>("captions")
 				.leftJoin<InteractionPoints>(
 					"interaction_points",
@@ -125,6 +113,23 @@ class CaptionDAO {
 					"interaction_points.caption"
 				)
 				.leftJoin<User>("users", "captions.user", "users.id");
+
+			query = this.db
+				.select("*")
+				.from(query.as("inner_query"))
+				.rank("rank", function () {
+					this.orderBy([
+						{
+							column: "points",
+							order: "desc",
+						},
+						{
+							column: "created_at",
+							order: "desc",
+						},
+					]).partitionBy("image");
+				});
+
 
 			if (limitForEachImage) {
 				query = this.db

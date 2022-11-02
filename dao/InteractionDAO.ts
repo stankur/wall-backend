@@ -245,7 +245,7 @@ class InteractionDAO {
 										"interaction_dislikes.image"
 									);
 								}
-							)
+							) // the next two wheres ensure that images with only likes/dislikes but not both are selected
 							.whereNotNull("interaction_likes.image")
 							.orWhere(function () {
 								this.whereNotNull("interaction_dislikes.image");
@@ -262,7 +262,7 @@ class InteractionDAO {
 												"interaction_dislikes.caption"
 											);
 										}
-									)
+									) // the next two wheres ensure that captions with only likes/dislikes but not both are selected
 									.whereNotNull("interaction_likes.caption")
 									.orWhere(function () {
 										this.whereNotNull(
