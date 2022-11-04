@@ -80,19 +80,6 @@ class S3 {
 			expiresIn: 3600,
 		});
 	}
-
-	async getBuffer(key: string) {
-		const getObjectCommand: GetObjectCommand = new GetObjectCommand({
-			Bucket: this.bucketName,
-			Key: key,
-		});
-
-		return await helper.streamToBuffer(
-			(
-				await this.s3Client.send(getObjectCommand)
-			).Body as Readable
-		);
-	}
 }
 
 export default new S3(

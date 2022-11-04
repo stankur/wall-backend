@@ -9,6 +9,7 @@ import imageController, {
 import captionController, {
 	CaptionController,
 } from "../controllers/CaptionController";
+import appStateController, {AppStateController} from "../controllers/AppStateController";
 
 import authenticationMiddleware, {
 	AuthenticationMiddleware,
@@ -26,13 +27,14 @@ function createRouter(
 	authenticationController: AuthenticationController,
 	imageController: ImageController,
 	captionController: CaptionController,
-	authenticationMiddleware: AuthenticationMiddleware
+	authenticationMiddleware: AuthenticationMiddleware,
+	appStateController: AppStateController
 ) {
 	router.get(
 		"/authentication",
 		function (req, res, next) {
-            return authenticationMiddleware.checkAuthenticated(req, res, next);
-        },
+			return authenticationMiddleware.checkAuthenticated(req, res, next);
+		},
 		function (req, res, next) {
 			return authenticationController.getUserData(req, res, next);
 		}
@@ -45,7 +47,7 @@ function createRouter(
 		return await authenticationController.signIn(req, res, next);
 	});
 
-    router.post(
+	router.post(
 		"/authentication/sign-out",
 		function (req, res, next) {
 			return authenticationMiddleware.checkAuthenticated(req, res, next);
@@ -115,6 +117,10 @@ function createRouter(
 		return await imageController.postImageToIg(req, res, next);
 	});
 
+	router.post("/state/init", async function (req, res, next) {
+		return await appStateController.initRound(req, res, next);
+	});
+
 	return router;
 }
 
@@ -122,6 +128,7 @@ export default createRouter(
 	authenticationController,
 	imageController,
 	captionController,
-    authenticationMiddleware
+	authenticationMiddleware,
+	appStateController
 );
 export { createRouter };

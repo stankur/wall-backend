@@ -1,20 +1,15 @@
 import imageDAO, {
 	ImageDAO,
 	ImageWithPointsAndUsername,
-    Image
+	Image,
 } from "../dao/ImageDAO";
 import captionDAO, {
 	CaptionDAO,
 	CaptionWithPointsAndUsername,
 } from "../dao/CaptionDAO";
-import interactionDAO, {
-    InteractionDAO,
-} from "../dao/InteractionDAO"
+import interactionDAO, { InteractionDAO } from "../dao/InteractionDAO";
 import s3, { S3 } from "../clients/s3";
-import ig, {
-	Instagram,
-	MediaRepositoryConfigureResponseRootObject,
-} from "../clients/instagram";
+import ig, { Instagram } from "../clients/instagram";
 
 import { stitch, createIndexes } from "../helpers/helper";
 
@@ -43,7 +38,6 @@ interface ImageWithCaptionsAndUserInteractionsNoUrl
 	extends ImageWithPointsAndUserInteractions {
 	captions: Required<CaptionWithPointsAndUserInteractions>[];
 }
-
 
 interface ImageWithCaptionsAndUserInteractions
 	extends Omit<ImageWithCaptionsAndUserInteractionsNoUrl, "key"> {
@@ -206,23 +200,29 @@ class ImageService {
 		);
 	}
 
-	async voteImage(image: string, user: string, type: "like" | "dislike"| null) {
-        if (type === null) {
-            return await this.imageDAO.deleteInteraction(image, user)
-        }
+	async voteImage(
+		image: string,
+		user: string,
+		type: "like" | "dislike" | null
+	) {
+		if (type === null) {
+			return await this.imageDAO.deleteInteraction(image, user);
+		}
 		return await this.imageDAO.createInteraction(image, user, type);
 	}
 
-
-	async postToIg(
-		image: string,
-		caption: string
-	): Promise<MediaRepositoryConfigureResponseRootObject> {
-		let foundImage: Image = await this.imageDAO.getImage(image);
-		let imageBuffer: Buffer = await this.s3.getBuffer(foundImage.key);
-		return await this.ig.postPicture(imageBuffer, caption);
+	// THIS IS ONLY FOR TEST AND NOT A REAL IMPLEMENTATION
+	async postToIg(): Promise<string> {
+		return await this.ig.postPicture(
+			"https://images-wall-bucket.s3.ca-central-1.amazonaws.com/a7ff5592738f8a23b9b340dfc5fe26aab1688fc6de5623c1e32c0e1a640911d7?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAVSI2JFTJGI3N2XUW%2F20221103%2Fca-central-1%2Fs3%2Faws4_request&X-Amz-Date=20221103T191818Z&X-Amz-Expires=3600&X-Amz-Signature=549ba9d07fc8b4788ad7a6ffc3e388f5c5af0f8d7b1e7aed648df10519441489&X-Amz-SignedHeaders=host&x-id=GetObject",
+			"911, Paul Blart speakin, wuzzup gurll"
+		);
 	}
 }
 
 export default new ImageService(imageDAO, captionDAO, interactionDAO, s3, ig);
-export { ImageService, ImageWithCaptions, ImageWithCaptionsAndUserInteractions };
+export {
+	ImageService,
+	ImageWithCaptions,
+	ImageWithCaptionsAndUserInteractions,
+};

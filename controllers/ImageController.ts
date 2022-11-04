@@ -5,7 +5,6 @@ import imageService, {
     ImageWithCaptionsAndUserInteractions,
 } from "../services/ImageService";
 import authenticationService, {AuthenticationService} from "../services/AuthenticationService";
-import { MediaRepositoryConfigureResponseRootObject } from "../clients/instagram";
 import { JwtPayload } from "jsonwebtoken";
 import ImageRequestValidator from "./request_validators/ImageRequestValidator";
 
@@ -131,18 +130,16 @@ class ImageController {
 			new Error(`either image id or caption text is not given`);
 		}
 
-		let publishResult: MediaRepositoryConfigureResponseRootObject;
+		let publishResult: string;
 
 		try {
 			publishResult = await this.imageService.postToIg(
-				req.body.image,
-				req.body.caption
 			);
 		} catch (err) {
 			return next(err);
 		}
 
-		return res.json(publishResult);
+		return res.json({ publishedImageId: publishResult });
 	}
 }
 
