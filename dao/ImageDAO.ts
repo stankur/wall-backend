@@ -14,6 +14,7 @@ interface Image {
 	user: string;
 	created_at: string;
 	updated_at: string;
+    round?: number;
 }
 
 interface ImageWithPoints extends Image {
@@ -35,7 +36,7 @@ class ImageDAO {
 		this.interactionDAO = interactionDAO;
 	}
 
-	async createImage(key: string, user: string) {
+	async createImage(key: string, user: string, round: number) {
 		type ReturnedId = Pick<Image, "id">;
 		let returnedIds: ReturnedId[] = [];
 
@@ -54,7 +55,7 @@ class ImageDAO {
 		return returnedId["id"];
 	}
 
-	async getImages() {
+	async getImages(round?: number) {
 		let returnedImageWithPoints: ImageWithPointsAndUsername[] = [];
 
 		try {
@@ -82,6 +83,12 @@ class ImageDAO {
 							"interaction_points.points"
 						)
 					),
+				})
+				.modify(function (qb) {
+					if (round !== undefined) {
+						qb.where({ round });
+						return;
+					}
 				})
 				.from<Image>("images")
 				.leftJoin<InteractionPoints>(

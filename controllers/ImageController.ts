@@ -75,6 +75,7 @@ class ImageController {
 		res: Response,
 		next: NextFunction
 	) {
+		console.log("interaction is requested with image");
 		let payload: JwtPayload;
 
 		payload = this.authenticationService.decodeToken(req.cookies.token);
@@ -133,8 +134,7 @@ class ImageController {
 		let publishResult: string;
 
 		try {
-			publishResult = await this.imageService.postToIg(
-			);
+			publishResult = await this.imageService.postToIg();
 		} catch (err) {
 			return next(err);
 		}

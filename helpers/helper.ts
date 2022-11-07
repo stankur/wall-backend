@@ -54,7 +54,8 @@ function stitch<Parent extends IdentifiedParent, Child>(
 		}
 
 		if (!(parentId in parentIndexes)) {
-			throw new Error("a child's parent's id is not present");
+            console.log("parent not in parent indexes")
+			return;
 		}
 
 		if (additionalChildCheck) {

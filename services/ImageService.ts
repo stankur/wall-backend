@@ -8,6 +8,7 @@ import captionDAO, {
 	CaptionWithPointsAndUsername,
 } from "../dao/CaptionDAO";
 import interactionDAO, { InteractionDAO } from "../dao/InteractionDAO";
+import appStateDAO, { AppStateDAO } from "../dao/AppStateDAO";
 import s3, { S3 } from "../clients/s3";
 import ig, { Instagram } from "../clients/instagram";
 
@@ -50,6 +51,7 @@ class ImageService {
 	private imageDAO: ImageDAO;
 	private captionDAO: CaptionDAO;
 	private interactionDAO: InteractionDAO;
+	private appStateDAO: AppStateDAO;
 	private s3: S3;
 	private ig: Instagram;
 
@@ -57,12 +59,14 @@ class ImageService {
 		imageDAO: ImageDAO,
 		captionDAO: CaptionDAO,
 		interactionDAO: InteractionDAO,
+		appStateDAO: AppStateDAO,
 		s3: S3,
 		ig: Instagram
 	) {
 		this.imageDAO = imageDAO;
 		this.captionDAO = captionDAO;
 		this.interactionDAO = interactionDAO;
+		this.appStateDAO = appStateDAO;
 		this.s3 = s3;
 		this.ig = ig;
 	}
@@ -72,7 +76,13 @@ class ImageService {
 			buffer,
 			mimeType
 		);
-		const id: string = await this.imageDAO.createImage(key, user);
+
+		const currentRound = await this.appStateDAO.getCurrentRoundData();
+		const id: string = await this.imageDAO.createImage(
+			key,
+			user,
+			currentRound.current_round
+		);
 
 		return id;
 	}
@@ -80,12 +90,24 @@ class ImageService {
 	async _convertToHaveUrl() {}
 
 	async getImages(
-		user?: string
+		user?: string,
+		currentRound: Boolean = true
 	): Promise<ImageWithCaptions[] | ImageWithCaptionsAndUserInteractions[]> {
-		let images: ImageWithPointsAndUsername[] =
-			await this.imageDAO.getImages();
-		let captions: CaptionWithPointsAndUsername[] =
-			await this.captionDAO.getCaptions();
+		let images: ImageWithPointsAndUsername[];
+		let captions: CaptionWithPointsAndUsername[];
+
+		captions = await this.captionDAO.getCaptions();
+
+		if (!currentRound) {
+			images = await this.imageDAO.getImages();
+		} else {
+			let internalCurrentRoundData =
+				await this.appStateDAO.getCurrentRoundData();
+
+			images = await this.imageDAO.getImages(
+				internalCurrentRoundData.current_round
+			);
+		}
 
 		let imageNoUrl:
 			| ImageWithCaptionsNoUrl[]
@@ -112,7 +134,7 @@ class ImageService {
 				captionsWithPointsAndUserInteractions
 			);
 
-			userInteractions.map(function (userInteraction) {
+			for (let userInteraction of userInteractions) {
 				let userInteractionCaption = userInteraction.caption;
 				let userInteractionImage = userInteraction.image;
 				if (!userInteractionCaption && !userInteractionImage) {
@@ -122,7 +144,7 @@ class ImageService {
 				}
 				if (userInteractionCaption && userInteractionImage) {
 					throw new Error(
-						"this is an internal error, please contact us about this. there is an interaction that is not associated more than 1 type of post"
+						"this is an internal error, please contact us about this. there is an interaction that is associated with more than 1 type of post"
 					);
 				}
 
@@ -144,7 +166,7 @@ class ImageService {
 					}
 
 					currCaption.interaction = userInteraction.type;
-					return;
+					continue;
 				}
 
 				if (userInteractionImage) {
@@ -165,7 +187,7 @@ class ImageService {
 
 					currImage.interaction = userInteraction.type;
 				}
-			});
+			}
 
 			imageNoUrl = stitch<
 				ImageWithPointsAndUserInteractions,
@@ -220,7 +242,14 @@ class ImageService {
 	}
 }
 
-export default new ImageService(imageDAO, captionDAO, interactionDAO, s3, ig);
+export default new ImageService(
+	imageDAO,
+	captionDAO,
+	interactionDAO,
+	appStateDAO,
+	s3,
+	ig
+);
 export {
 	ImageService,
 	ImageWithCaptions,
