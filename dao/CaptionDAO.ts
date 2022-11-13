@@ -76,7 +76,6 @@ class CaptionDAO {
 
 	async getCaptions(
 		limitForEachImage?: number,
-		user?: string
 	): Promise<CaptionWithPointsAndUsername[]> {
 		let returnedCaptionWithPoints: CaptionWithPointsAndUsername[] = [];
 		try {

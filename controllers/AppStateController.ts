@@ -8,6 +8,12 @@ class AppStateController {
 		this.appStateService = appStateService;
 	}
 
+	async getCurrentRoundData(req: Request, res: Response, next: NextFunction) {
+        let currentRound = await this.appStateService.getCurrentRoundData();
+
+        return res.json({ currentRound });
+    };
+
 	async initRound(req: Request, res: Response, next: NextFunction) {
 		let newRound = await this.appStateService.initRound();
 

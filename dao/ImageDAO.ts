@@ -14,7 +14,7 @@ interface Image {
 	user: string;
 	created_at: string;
 	updated_at: string;
-    round?: number;
+	round?: number;
 }
 
 interface ImageWithPoints extends Image {
@@ -26,6 +26,8 @@ interface ImageWithPoints extends Image {
 interface ImageWithPointsAndUsername extends ImageWithPoints {
 	username: string;
 }
+
+type GetImagesFilter = number | string;
 
 class ImageDAO {
 	db: Knex;
@@ -55,7 +57,11 @@ class ImageDAO {
 		return returnedId["id"];
 	}
 
-	async getImages(round?: number) {
+	// assumes that filter being number is asking for round
+	// assumes that filter being string is asking for id
+	async getImages(
+		filter?: GetImagesFilter
+	): Promise<ImageWithPointsAndUsername[]> {
 		let returnedImageWithPoints: ImageWithPointsAndUsername[] = [];
 
 		try {
@@ -85,9 +91,13 @@ class ImageDAO {
 					),
 				})
 				.modify(function (qb) {
-					if (round !== undefined) {
-						qb.where({ round });
+					if (typeof filter === "number") {
+						qb.where({ "images.round": filter });
 						return;
+					}
+
+					if (typeof filter === "string") {
+						qb.where({ "images.id": filter });
 					}
 				})
 				.from<Image>("images")
@@ -104,45 +114,38 @@ class ImageDAO {
 				}`
 			);
 		}
-
 		TypeFixer.convertEachKeyToIntIfPossible(
 			returnedImageWithPoints,
 			"likes",
 			"dislikes",
 			"points"
 		);
+
+		if (typeof filter === "number") {
+			return returnedImageWithPoints;
+		}
+
+		if (typeof filter === "string") {
+			if (returnedImageWithPoints.length === 0) {
+				throw new Error("no image with the given id is found");
+			}
+
+			if (returnedImageWithPoints.length > 1) {
+				throw new Error(
+					"This is an internal error, please contact to inform about this error. more than 1 images with the given id has been found."
+				);
+			}
+		}
+
+
 		return returnedImageWithPoints;
 	}
 
-	async getImage(image: string): Promise<Image> {
-		let returnedImages: Image[] = [];
-
-		try {
-			returnedImages = await this.db<Image>("images")
-				.select("*")
-				.where({ id: image });
-		} catch (err) {
-			throw new Error(
-				`There is an error while trying to get the image data from the database: ${
-					(err as Error).message
-				}`
-			);
-		}
-
-		if (returnedImages.length === 0) {
-			throw new Error("no image with the given id is found");
-		}
-
-		if (returnedImages.length > 1) {
-			throw new Error(
-				"This is an internal error, please contact to inform about this error. more than 1 images witht he given id has been found."
-			);
-		}
-
-		return returnedImages[0];
-	}
-
-	async createInteraction(image: string, user: string, type: "like" | "dislike") {
+	async createInteraction(
+		image: string,
+		user: string,
+		type: "like" | "dislike"
+	) {
 		return await this.interactionDAO.createInteraction(image, user, type);
 	}
 

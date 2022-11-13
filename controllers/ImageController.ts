@@ -57,6 +57,63 @@ class ImageController {
 	}
 
 	// assumes user is NOT authenticated
+	async getImage(req: Request, res: Response, next: NextFunction) {
+		console.log("getting image");
+		try {
+			ImageRequestValidator.validateGetImageRequest(req);
+		} catch (err) {
+			return next(err);
+		}
+
+		let images: ImageWithCaptions[] = [];
+
+		try {
+			images = await this.imageService.getImages(
+				undefined,
+				undefined,
+				req.params.id
+			);
+		} catch (err) {
+			return next(err);
+		}
+
+		return res.json({ image: images[0] });
+	}
+
+	// assumes user is authenticated
+	async getImageAndUserInteractions(
+		req: Request,
+		res: Response,
+		next: NextFunction
+	) {
+		console.log("getting image for signed in");
+
+		try {
+			ImageRequestValidator.validateGetImageRequest(req);
+		} catch (err) {
+			return next(err);
+		}
+
+		let payload: JwtPayload;
+
+		payload = this.authenticationService.decodeToken(req.cookies.token);
+
+		let images: ImageWithCaptionsAndUserInteractions[] = [];
+
+		try {
+			images = (await this.imageService.getImages(
+				payload.id,
+				undefined,
+				req.params.id
+			)) as ImageWithCaptionsAndUserInteractions[];
+		} catch (err) {
+			return next(err);
+		}
+
+		return res.json({ image: images[0] });
+	}
+
+	// assumes user is NOT authenticated
 	async getImages(req: Request, res: Response, next: NextFunction) {
 		let images: ImageWithCaptions[] = [];
 
@@ -75,7 +132,6 @@ class ImageController {
 		res: Response,
 		next: NextFunction
 	) {
-		console.log("interaction is requested with image");
 		let payload: JwtPayload;
 
 		payload = this.authenticationService.decodeToken(req.cookies.token);

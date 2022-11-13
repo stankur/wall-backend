@@ -70,6 +70,17 @@ function createRouter(
 	);
 
 	router.get(
+		"/images/:id",
+		UtilMiddlewares.ifElse(
+			authenticationMiddleware.checkAuthenticated.bind(
+				authenticationMiddleware
+			),
+			imageController.getImageAndUserInteractions.bind(imageController),
+			imageController.getImage.bind(imageController)
+		)
+	);
+
+	router.get(
 		"/images",
 		UtilMiddlewares.ifElse(
 			authenticationMiddleware.checkAuthenticated.bind(
@@ -111,6 +122,10 @@ function createRouter(
 			return await captionController.voteCaption(req, res, next);
 		}
 	);
+
+	router.get("/current-round", async function (req, res, next) {
+		return await appStateController.getCurrentRoundData(req, res, next);
+	});
 
 	// admin only
 	router.post("/instagram", async function (req, res, next) {

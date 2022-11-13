@@ -16,7 +16,14 @@ function ImageRequestValidator() {
 				);
 			}
 		},
+		validateGetImageRequest: (req: Request) => {
+			if (typeof req.params.id !== "string") {
+				throw new Error(
+					`image id is not given or is of an invalid format`
+				);
+			}
+		},
 	};
 }
 
-export default ImageRequestValidator();;
+export default ImageRequestValidator();

@@ -91,24 +91,27 @@ class ImageService {
 
 	async getImages(
 		user?: string,
-		currentRound: Boolean = true
+		currentRound: Boolean = true,
+		id?: string
 	): Promise<ImageWithCaptions[] | ImageWithCaptionsAndUserInteractions[]> {
 		let images: ImageWithPointsAndUsername[];
 		let captions: CaptionWithPointsAndUsername[];
 
 		captions = await this.captionDAO.getCaptions();
 
-		if (!currentRound) {
-			images = await this.imageDAO.getImages();
-		} else {
+		if (typeof id === "string") {
+			images = await this.imageDAO.getImages(id);
+		} else if (currentRound) {
 			let internalCurrentRoundData =
 				await this.appStateDAO.getCurrentRoundData();
 
 			images = await this.imageDAO.getImages(
 				internalCurrentRoundData.current_round
 			);
+		} else {
+			images = await this.imageDAO.getImages();
 		}
-
+        
 		let imageNoUrl:
 			| ImageWithCaptionsNoUrl[]
 			| ImageWithCaptionsAndUserInteractionsNoUrl[] = [];
@@ -150,9 +153,7 @@ class ImageService {
 
 				if (userInteractionCaption) {
 					if (!(userInteractionCaption in captionIndexes)) {
-						throw new Error(
-							"this is an internal error, please contact us about this. there is an interaction for a caption that does not exist"
-						);
+						continue;
 					}
 
 					let index: number = captionIndexes[userInteractionCaption];
@@ -171,9 +172,7 @@ class ImageService {
 
 				if (userInteractionImage) {
 					if (!(userInteractionImage in imageIndexes)) {
-						throw new Error(
-							"this is an internal error, please contact us about this. there is an interaction for an image that does not exist"
-						);
+						continue;
 					}
 					let index: number = imageIndexes[userInteractionImage];
 

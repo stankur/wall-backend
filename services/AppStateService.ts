@@ -7,6 +7,10 @@ class AppStateService {
 		this.appStateDAO = appStateDAO;
 	}
 
+	async getCurrentRoundData() {
+		return await this.appStateDAO.getCurrentRoundData();
+	}
+
 	async initRound() {
 		return await this.appStateDAO.initRound();
 	}
