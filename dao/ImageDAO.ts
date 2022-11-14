@@ -27,7 +27,10 @@ interface ImageWithPointsAndUsername extends ImageWithPoints {
 	username: string;
 }
 
-type GetImagesFilter = number | string;
+type ImagesFilter = number | string;
+interface ImagesOrderBy {
+	pointsAndCreatedAt?: boolean;
+}
 
 class ImageDAO {
 	db: Knex;
@@ -60,12 +63,14 @@ class ImageDAO {
 	// assumes that filter being number is asking for round
 	// assumes that filter being string is asking for id
 	async getImages(
-		filter?: GetImagesFilter
+		filter?: ImagesFilter,
+		orderBy: ImagesOrderBy = { pointsAndCreatedAt: true },
+        limit?: number
 	): Promise<ImageWithPointsAndUsername[]> {
 		let returnedImageWithPoints: ImageWithPointsAndUsername[] = [];
 
 		try {
-			returnedImageWithPoints = await this.interactionDAO
+			let query: Knex.QueryBuilder = this.interactionDAO
 				._getPointsCTEQuery()
 				.select({
 					id: "images.id",
@@ -107,6 +112,28 @@ class ImageDAO {
 					"interaction_points.image"
 				)
 				.leftJoin<User>("users", "images.user", "users.id");
+
+			if (orderBy.pointsAndCreatedAt !== false) {
+				query = this.db
+					.select("*")
+					.from(query.as("query"))
+					.orderBy([
+						{
+							column: "points",
+							order: "desc",
+						},
+						{
+							column: "created_at",
+							order: "desc",
+						},
+					]);
+			}
+
+			if (limit !== undefined) {
+				query = query.limit(limit);
+			}
+
+			returnedImageWithPoints = await query;
 		} catch (err) {
 			throw new Error(
 				`There is an error while trying to get the images data from the database: ${
@@ -136,7 +163,6 @@ class ImageDAO {
 				);
 			}
 		}
-
 
 		return returnedImageWithPoints;
 	}

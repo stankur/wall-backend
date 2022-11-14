@@ -123,7 +123,7 @@ function createRouter(
 		}
 	);
 
-	router.get("/current-round", async function (req, res, next) {
+	router.get("/state/current-round", async function (req, res, next) {
 		return await appStateController.getCurrentRoundData(req, res, next);
 	});
 
@@ -135,6 +135,10 @@ function createRouter(
 	router.post("/state/init", async function (req, res, next) {
 		return await appStateController.initRound(req, res, next);
 	});
+
+    router.post("/state/round", async function(req, res, next) {
+        return await appStateController.upateRound(req, res, next);
+    })
 
 	return router;
 }

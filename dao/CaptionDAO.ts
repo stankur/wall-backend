@@ -76,6 +76,7 @@ class CaptionDAO {
 
 	async getCaptions(
 		limitForEachImage?: number,
+        image?: string
 	): Promise<CaptionWithPointsAndUsername[]> {
 		let returnedCaptionWithPoints: CaptionWithPointsAndUsername[] = [];
 		try {
@@ -129,12 +130,15 @@ class CaptionDAO {
 					]).partitionBy("image");
 				});
 
-
 			if (limitForEachImage) {
 				query = this.db
 					.select("*")
 					.from(query.as("query"))
 					.where("rank", "<=", limitForEachImage);
+			}
+
+			if (image) {
+				query = query.where({ image });
 			}
 			returnedCaptionWithPoints = await query;
 
@@ -152,7 +156,7 @@ class CaptionDAO {
 				}`
 			);
 		}
-
+        
 		return returnedCaptionWithPoints;
 	}
 }

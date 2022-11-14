@@ -4,7 +4,7 @@ import db from "../db/db";
 
 interface AppState {
 	current_round: number;
-	current_round_finish_time: string;
+	current_round_finish: string;
 }
 
 class AppStateDAO {
@@ -46,11 +46,11 @@ class AppStateDAO {
 		try {
 			newTime = await this.db<AppState>("app_state")
 				.update({
-					current_round_finish_time: this.db.raw(
-						`current_round_finish_time + interval '${days} day'`
+					current_round_finish: this.db.raw(
+						`current_round_finish + interval '${days} day'`
 					),
 				})
-				.returning("current_round_finish_time");
+				.returning("current_round_finish");
 		} catch (err) {
 			throw new Error(
 				`there is an error while trying to increment round finish time. message: ${

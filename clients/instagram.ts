@@ -104,9 +104,11 @@ class Instagram {
 			createContainerResponseBody = (await helpers.fetch(
 				`${this.data.baseUrl}/${
 					this.data.userId
-				}/media?image_url=${encodeURIComponent(imageUrl)}&caption=${encodeURIComponent(
-					caption
-				)}&access_token=${this.data.pageAccessToken}`,
+				}/media?image_url=${encodeURIComponent(
+					imageUrl
+				)}&caption=${encodeURIComponent(caption)}&access_token=${
+					this.data.pageAccessToken
+				}`,
 				{
 					method: "POST",
 				}
@@ -119,7 +121,7 @@ class Instagram {
 			);
 		}
 
-        console.log(JSON.stringify(createContainerResponseBody));
+		console.log(JSON.stringify(createContainerResponseBody));
 
 		if (!createContainerResponseBody["id"]) {
 			throw new Error(
@@ -153,6 +155,17 @@ class Instagram {
 			);
 		}
 		return publishContainerResponseBody["id"];
+	}
+
+	createCaptionWithCredentials(
+		rawCaption: string,
+		imageCreator: string,
+		captionCreator: string
+	) {
+		return `${rawCaption}
+        
+        image: ${imageCreator}
+        caption: ${captionCreator}`;
 	}
 }
 
