@@ -21,13 +21,10 @@ class UtilMiddlewares {
 				next: NextFunction
 			) {
 				if (err) {
-					console.log((err as Error).message);
-					console.log("else condition satisfied");
 					return await fail(req, res, next);
 				}
 			},
 			async function (req: Request, res: Response, next: NextFunction) {
-				console.log("if condition satisfied");
 				return await success(req, res, next);
 			},
 		];

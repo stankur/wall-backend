@@ -21,8 +21,6 @@ function CaptionRequestValidator() {
 					req.body.type === null
 				)
 			) {
-                console.log("id: " + req.params.id);
-                console.log("type: " + req.body.type);
 				throw new Error(
 					`either caption id, or user id not given, or interaction type is invalid (could only be like | dislike | null)`
 				);

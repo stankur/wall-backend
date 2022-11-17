@@ -58,7 +58,6 @@ class ImageController {
 
 	// assumes user is NOT authenticated
 	async getImage(req: Request, res: Response, next: NextFunction) {
-		console.log("getting image");
 		try {
 			ImageRequestValidator.validateGetImageRequest(req);
 		} catch (err) {
@@ -86,8 +85,6 @@ class ImageController {
 		res: Response,
 		next: NextFunction
 	) {
-		console.log("getting image for signed in");
-
 		try {
 			ImageRequestValidator.validateGetImageRequest(req);
 		} catch (err) {

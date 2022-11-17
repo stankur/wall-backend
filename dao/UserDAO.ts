@@ -17,18 +17,17 @@ class UserDAO {
 	}
 
 	async createUser(username: string, hashed_password: string) {
-		let id: string = "";
+		let idObj: {id: string};
 
 		try {
-			[id] = await this.db<User>("users")
+			[idObj] = await this.db<User>("users")
 				.insert({ username, hashed_password })
 				.returning("id");
 		} catch (err) {
 			throw new Error(`there is an error while inserting your credentials to our database. Username already esists or it is our server network issue
             `);
 		}
-
-		return id;
+		return idObj.id;
 	}
 
 	async findUser(username: string) {
