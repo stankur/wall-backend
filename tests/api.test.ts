@@ -4,11 +4,18 @@ import db from "../db/db";
 import dotenv from "dotenv";
 dotenv.config();
 
+import dayjs from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
+dayjs.extend(isBetween);
+
 
 import userService from "../services/UserService";
 import appStateService from "../services/AppStateService";
+
 import { User } from "../dao/UserDAO";
-import { AppState } from "../dao/AppStateDAO";
+import appStateDAO, { AppState } from "../dao/AppStateDAO";
+
+
 let pgContainer: StartedTestContainer;
 
 beforeAll(async () => {
@@ -76,18 +83,58 @@ let users = new Map<UserSample, UserData>([
 ]);
 
 describe("Services Tests", () => {
-	test("create user test", async function () {
-		for (let userDataPair of users) {
-			let userData = userDataPair[1];
-			let id = await userService.createUser(
-				userData.username,
-				userData.password
-			);
+	describe("User Service tests", () => {
+		test("create user test", async function () {
+			for (let userDataPair of users) {
+				let userData = userDataPair[1];
+				let id = await userService.createUser(
+					userData.username,
+					userData.password
+				);
 
-			expect(typeof id === "string");
-		}
+				expect(typeof id === "string");
+			}
 
-		let selectedUsers = await db.select("*").from<User>("users");
-		expect(selectedUsers.length).toBe(4);
+			let selectedUsers = await db.select("*").from<User>("users");
+			expect(selectedUsers.length).toBe(4);
+		});
+	});
+
+	describe("App State Service tests", () => {
+		test("get current round test", async function () {
+			let currentRoundData: AppState =
+				await appStateService.getCurrentRoundData();
+            let nextDay = dayjs().add(1, "day");
+
+            console.log(currentRoundData.current_round_finish);
+			expect(currentRoundData.current_round).toBe(1);
+			expect(
+				dayjs(currentRoundData.current_round_finish).isBetween(
+					nextDay,
+					nextDay,
+					"minute",
+					"[]"
+				)
+			).toBe(true);
+		});
 	});
 });
+
+describe("DAO Tests", () => {
+    describe("App State DAO tests", () => {
+        test("increment current round finish time test", async function() {
+            await appStateDAO.incrementCurrentRoundFinishTime(1);
+			let currentRoundData: AppState =
+				await appStateService.getCurrentRoundData();
+            let nextDay = dayjs().add(1, "day");
+
+			expect(
+				dayjs(currentRoundData.current_round_finish).isBetween(
+					nextDay,nextDay,
+					"minute", "[]"
+				)
+			).toBe(true);
+
+        })
+    })
+})

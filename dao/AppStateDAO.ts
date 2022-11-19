@@ -47,7 +47,7 @@ class AppStateDAO {
 			newTime = await this.db<AppState>("app_state")
 				.update({
 					current_round_finish: this.db.raw(
-						`current_round_finish + interval '${days} day'`
+						`? + interval '${days} day'`, [db.fn.now()]
 					),
 				})
 				.returning("current_round_finish");

@@ -68,9 +68,8 @@ class AppStateService {
 				bestCaptionOfBestImage.username
 			);
 
-            // THIS IS TEST ONLY. PLEASE CHANGE FOR REAL IMPLEMENTATION
 			await this.ig.postPicture(
-				"https://images-wall-bucket.s3.ca-central-1.amazonaws.com/a7ff5592738f8a23b9b340dfc5fe26aab1688fc6de5623c1e32c0e1a640911d7?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAVSI2JFTJGI3N2XUW%2F20221114%2Fca-central-1%2Fs3%2Faws4_request&X-Amz-Date=20221114T064648Z&X-Amz-Expires=3600&X-Amz-Signature=904bfcf251b3714a58abe7502b578287900b9629490954289109fc93cbe4e269&X-Amz-SignedHeaders=host&x-id=GetObject",
+				imageUrl,
 				captionWithCredentials
 			);
 			await this.appStateDAO.incrementCurrentRound();
