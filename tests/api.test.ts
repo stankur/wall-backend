@@ -19,14 +19,13 @@ import appStateDAO, { AppState } from "../dao/AppStateDAO";
 let pgContainer: StartedTestContainer;
 
 beforeAll(async () => {
-	pgContainer = await new GenericContainer("postgres")
+	pgContainer = await new GenericContainer("postgres").withStartupTimeout(120)
 		.withEnv("POSTGRES_USER", process.env.TEST_DB_USER as string)
 		.withEnv("POSTGRES_PASSWORD", process.env.TEST_DB_PASSWORD as string)
 		.withEnv("POSTGRES_DB", process.env.TEST_DB_NAME as string)
 		.withExposedPorts(5432)
 		.start();
 	process.env.TEST_DB_PORT = pgContainer.getMappedPort(5432).toString();
-
 	await db.migrate.latest({
 		directory: "./db/migrations",
 		extension: "ts",
