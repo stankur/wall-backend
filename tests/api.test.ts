@@ -4,6 +4,11 @@ import db from "../db/db";
 import dotenv from "dotenv";
 dotenv.config();
 
+
+import userService from "../services/UserService";
+import appStateService from "../services/AppStateService";
+import { User } from "../dao/UserDAO";
+import { AppState } from "../dao/AppStateDAO";
 let pgContainer: StartedTestContainer;
 
 beforeAll(async () => {
@@ -19,16 +24,70 @@ beforeAll(async () => {
 		directory: "./db/migrations",
 		extension: "ts",
 	});
+
+	await appStateService.initRound();
 });
 
 afterAll(async () => {
-    await db.destroy();
+	await db<AppState>("app_state").del();
+    await db<User>("users").del();
+
+	await db.destroy();
 	await pgContainer.stop();
 });
 
-describe("Route Tests", () => {
-	test("expects true to be true", function (done) {
-		expect(true).toBeTruthy();
-		done();
+type UserSample = "user0" | "user1" | "user2" | "user3";
+
+interface UserData {
+	username: string;
+	password: string;
+	id?: string;
+}
+
+let users = new Map<UserSample, UserData>([
+	[
+		"user0",
+		{
+			username: "user0",
+			password: "somepassword",
+		},
+	],
+	[
+		"user1",
+		{
+			username: "user1",
+			password: "somepassword",
+		},
+	],
+	[
+		"user2",
+		{
+			username: "user2",
+			password: "somepassword",
+		},
+	],
+	[
+		"user3",
+		{
+			username: "user3",
+			password: "somepassword",
+		},
+	],
+]);
+
+describe("Services Tests", () => {
+	test("create user test", async function () {
+		for (let userDataPair of users) {
+			let userData = userDataPair[1];
+			let id = await userService.createUser(
+				userData.username,
+				userData.password
+			);
+
+			expect(typeof id === "string");
+		}
+
+		let selectedUsers = await db.select("*").from<User>("users");
+		expect(selectedUsers.length).toBe(4);
 	});
 });

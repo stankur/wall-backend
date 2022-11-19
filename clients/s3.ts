@@ -2,10 +2,13 @@ import dotenv from "dotenv";
 import findConfig from "find-config";
 import crypto from "crypto";
 
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+	S3Client,
+	PutObjectCommand,
+	GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Readable, Stream } from "stream";
-
 
 dotenv.config({ path: findConfig(".env") || undefined });
 
@@ -30,19 +33,29 @@ class S3 {
 		accessKeyId: string = "",
 		secretAccessKey: string = "",
 		bucketName: string,
-		endpoint: string | undefined = undefined
+		endpoint: string | undefined = undefined,
+		region: string | undefined = undefined
 	) {
 		this.bucketName = bucketName;
-		// initialization is different in development and production. please adjust to fit both later!
-		// region field should be included in production
-		this.s3Client = new S3Client({
-			credentials: {
-				accessKeyId: accessKeyId,
-				secretAccessKey: secretAccessKey,
-			},
-			endpoint: endpoint,
-			forcePathStyle: true,
-		});
+
+		if (process.env.NODE_ENV === "development") {
+			this.s3Client = new S3Client({
+				credentials: {
+					accessKeyId: accessKeyId,
+					secretAccessKey: secretAccessKey,
+				},
+				endpoint: endpoint,
+				forcePathStyle: true,
+			});
+		} else {
+			this.s3Client = new S3Client({
+				credentials: {
+					accessKeyId: accessKeyId,
+					secretAccessKey: secretAccessKey,
+				},
+				region,
+			});
+		}
 	}
 
 	async storeImageReturningKey(
@@ -86,7 +99,8 @@ export default new S3(
 	process.env.ACCESS_KEY,
 	process.env.SECRET_ACCESS_KEY,
 	process.env.BUCKET_NAME as string,
-	process.env.ENDPOINT_URL
+	process.env.ENDPOINT_URL,
+	process.env.BUCKET_REGION
 );
 
 export { S3 };

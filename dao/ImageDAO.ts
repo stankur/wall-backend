@@ -47,7 +47,7 @@ class ImageDAO {
 
 		try {
 			returnedIds = await this.db<Image>("images")
-				.insert({ key, user })
+				.insert({ key, user, round })
 				.returning("id");
 		} catch (e) {
 			throw new Error(
