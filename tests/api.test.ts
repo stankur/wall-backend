@@ -19,7 +19,7 @@ import appStateDAO, { AppState } from "../dao/AppStateDAO";
 let pgContainer: StartedTestContainer;
 
 beforeAll(async () => {
-	pgContainer = await new GenericContainer("postgres").withStartupTimeout(120)
+	pgContainer = await new GenericContainer("postgres").withStartupTimeout(120000)
 		.withEnv("POSTGRES_USER", process.env.TEST_DB_USER as string)
 		.withEnv("POSTGRES_PASSWORD", process.env.TEST_DB_PASSWORD as string)
 		.withEnv("POSTGRES_DB", process.env.TEST_DB_NAME as string)
