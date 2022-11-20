@@ -1,6 +1,4 @@
 import { StartedTestContainer, GenericContainer } from "testcontainers";
-import db from "../db/db";
-
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -8,28 +6,59 @@ import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
 
+import { Knex } from "knex";
 
-import userService from "../services/UserService";
-import appStateService from "../services/AppStateService";
+import {UserService} from "../services/UserService";
+import {AppStateService} from "../services/AppStateService";
 
-import { User } from "../dao/UserDAO";
-import appStateDAO, { AppState } from "../dao/AppStateDAO";
+import { User, UserDAO } from "../dao/UserDAO";
+import { AppState, AppStateDAO } from "../dao/AppStateDAO";
+import { ImageDAO } from "../dao/ImageDAO";
+
+import { injectToConfig } from "../db/db";
+import { InteractionDAO } from "../dao/InteractionDAO";
+import ig from "../clients/instagram";
+import s3 from "../clients/s3";
+import { CaptionDAO } from "../dao/CaptionDAO";
+import bcrypt from "../clients/bcrypt";
 
 
 let pgContainer: StartedTestContainer;
+let db: Knex;
+
+let userService: UserService;
+let appStateService: AppStateService;
+
+let appStateDAO: AppStateDAO;
 
 beforeAll(async () => {
-	pgContainer = await new GenericContainer("postgres").withStartupTimeout(120000)
+	pgContainer = await new GenericContainer("postgres")
 		.withEnv("POSTGRES_USER", process.env.TEST_DB_USER as string)
 		.withEnv("POSTGRES_PASSWORD", process.env.TEST_DB_PASSWORD as string)
 		.withEnv("POSTGRES_DB", process.env.TEST_DB_NAME as string)
 		.withExposedPorts(5432)
 		.start();
-	process.env.TEST_DB_PORT = pgContainer.getMappedPort(5432).toString();
+	let testDBPort = pgContainer.getMappedPort(5432);
+	db = injectToConfig("port", testDBPort);
 	await db.migrate.latest({
 		directory: "./db/migrations",
 		extension: "ts",
 	});
+
+    let interactionDAO = new InteractionDAO(db);
+    let imageDAO = new ImageDAO(db, interactionDAO);
+	let captionDAO = new CaptionDAO(db, interactionDAO);
+	let userDAO = new UserDAO(db);
+	appStateDAO = new AppStateDAO(db);
+
+	appStateService = new AppStateService(
+		appStateDAO,
+		imageDAO,
+		captionDAO,
+		ig,
+		s3
+	);
+	userService = new UserService(userDAO, bcrypt);
 
 	await appStateService.initRound();
 });

@@ -30,13 +30,7 @@ const config: KnexConfig = {
 		client: "postgresql",
 		connection: {
 			host: process.env.TEST_DB_HOST as string,
-			port: (() => {
-                console.log(
-					"in the knexfile, I am trying to connect to this port: " +
-						process.env.TEST_DB_PORT
-				);
-				return parseInt(process.env.TEST_DB_PORT as string);
-			})() as number,
+			port:  parseInt(process.env.TEST_DB_PORT as string) as number,
 			database: process.env.TEST_DB_NAME as string,
 			user: process.env.TEST_DB_USER as string,
 			password: process.env.TEST_DB_PASSWORD as string,
