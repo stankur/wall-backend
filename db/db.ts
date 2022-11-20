@@ -7,11 +7,25 @@ dotenv.config({ path: findConfig(".env") || undefined });
 
 export default knex(config[process.env.NODE_ENV || "development"]);
 
-function injectToConfig(key: string, value: any) {
+function injectPort(port: number) {
 	let configBefore = config[process.env.NODE_ENV || "development"];
-	let configInjected = { ...configBefore, [key]: value };
+    let connectionBefore = configBefore.connection;
 
-	return knex(configInjected);
+    if (!connectionBefore) {
+        throw new Error("failed to inject port. connection not present in config.")
+    }
+
+    configBefore.connection = {
+		host: process.env.DB_HOST as string,
+		port,
+		database: process.env.DB_NAME as string,
+		user: process.env.DB_USER as string,
+		password: process.env.DB_PASSWORD as string,
+	};
+
+    let configNew = configBefore;
+
+	return knex(configNew);
 }
 
-export { injectToConfig };
+export { injectPort };
