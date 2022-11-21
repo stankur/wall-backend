@@ -12,6 +12,10 @@ dotenv.config({path: findConfig(".env") || undefined});
 const app: Express = express();
 const port = process.env.PORT || 8000;
 
+app.get("/", (req: Request, res: Response) => {
+	res.send("Welcome to Wall Server");
+});
+
 app.use(cookieParser());
 app.use(
 	cors({
@@ -21,10 +25,6 @@ app.use(
 );
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-
-app.get("/", (req: Request, res: Response) => {
-	res.send("Express + TypeScript Server");
-});
 
 app.use("/api", apiRouter);
 
