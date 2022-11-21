@@ -27,7 +27,8 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm run build --if-present
-    - run: pm2 stop wallserver
+    - run: |
+        pm2 stop wallserver || :
     - run: pm2 start dist/index.js --name=wallserver --update-env
       env:
         ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
