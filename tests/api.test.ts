@@ -15,7 +15,7 @@ import { User, UserDAO } from "../dao/UserDAO";
 import { AppState, AppStateDAO } from "../dao/AppStateDAO";
 import { ImageDAO } from "../dao/ImageDAO";
 
-import { injectPort } from "../db/db";
+import { injectTestPort } from "../db/db";
 import { InteractionDAO } from "../dao/InteractionDAO";
 import ig from "../clients/instagram";
 import s3 from "../clients/s3";
@@ -39,7 +39,8 @@ beforeAll(async () => {
 		.withExposedPorts(5432)
 		.start();
 	let testDBPort = pgContainer.getMappedPort(5432);
-	db = injectPort(testDBPort);
+
+	db = injectTestPort(testDBPort);
 	await db.migrate.latest({
 		directory: "./db/migrations",
 		extension: "ts",

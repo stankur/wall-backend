@@ -7,7 +7,7 @@ dotenv.config({ path: findConfig(".env") || undefined });
 
 export default knex(config[process.env.NODE_ENV || "development"]);
 
-function injectPort(port: number) {
+function injectTestPort(port: number) {
 	let configBefore = config[process.env.NODE_ENV || "development"];
     let connectionBefore = configBefore.connection;
 
@@ -16,11 +16,11 @@ function injectPort(port: number) {
     }
 
     configBefore.connection = {
-		host: process.env.DB_HOST as string,
+		host: process.env.TEST_DB_HOST as string,
 		port,
-		database: process.env.DB_NAME as string,
-		user: process.env.DB_USER as string,
-		password: process.env.DB_PASSWORD as string,
+		database: process.env.TEST_DB_NAME as string,
+		user: process.env.TEST_DB_USER as string,
+		password: process.env.TEST_DB_PASSWORD as string,
 	};
 
     let configNew = configBefore;
@@ -28,4 +28,4 @@ function injectPort(port: number) {
 	return knex(configNew);
 }
 
-export { injectPort };
+export { injectTestPort };
