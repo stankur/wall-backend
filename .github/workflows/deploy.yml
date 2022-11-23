@@ -17,7 +17,26 @@ jobs:
       matrix:
         node-version: [16.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
+    env:
+      ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+      BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+      BUCKET_REGION: ${{ secrets.BUCKET_REGION }}
+      COOKIE_MAX_DAYS: ${{ secrets.COOKIE_MAX_DAYS }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+      HASHING_SALT: ${{ secrets.HASHING_SALT }}
+      HASHING_SECRET: ${{ secrets.HASHING_SECRET }}
+      IG_API_BASE_URL: ${{ secrets.IG_API_BASE_URL }}
+      INSTAGRAM_PAGE_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_PAGE_ACCESS_TOKEN }}
+      INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+      NODE_ENV: ${{ secrets.NODE_ENV }}
+      PORT: ${{ secrets.PORT }}
+      SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS_KEY }}
+      
     steps:
     - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node-version }}
@@ -28,27 +47,6 @@ jobs:
     - run: npm ci
     - run: npm run build --if-present
     - run: npm run migrateLatest
-      env:
-        NODE_ENV: ${{ secrets.NODE_ENV }}
     - run: |
         pm2 stop wallserver || :
     - run: pm2 start dist/index.js --name=wallserver --update-env
-      env:
-        ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
-        BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
-        BUCKET_REGION: ${{ secrets.BUCKET_REGION }}
-        COOKIE_MAX_DAYS: ${{ secrets.COOKIE_MAX_DAYS }}
-        DB_HOST: ${{ secrets.DB_HOST }}
-        DB_NAME: ${{ secrets.DB_NAME }}
-        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        DB_PORT: ${{ secrets.DB_PORT }}
-        DB_USER: ${{ secrets.DB_USER }}
-        FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
-        HASHING_SALT: ${{ secrets.HASHING_SALT }}
-        HASHING_SECRET: ${{ secrets.HASHING_SECRET }}
-        IG_API_BASE_URL: ${{ secrets.IG_API_BASE_URL }}
-        INSTAGRAM_PAGE_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_PAGE_ACCESS_TOKEN }}
-        INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
-        NODE_ENV: ${{ secrets.NODE_ENV }}
-        PORT: ${{ secrets.PORT }}
-        SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS_KEY }}
