@@ -56,4 +56,5 @@ jobs:
         NODE_ENV: ${{ secrets.NODE_ENV }}
         PORT: ${{ secrets.PORT }}
         SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS_KEY }}
+        ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
 
