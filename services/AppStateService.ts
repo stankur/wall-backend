@@ -44,42 +44,33 @@ class AppStateService {
 	}
 
 	async updateRound() {
-		try {
-			let currentRoundData = await this.getCurrentRoundData();
-			let currentRound = currentRoundData.current_round;
+		let currentRoundData = await this.getCurrentRoundData();
+		await this.appStateDAO.incrementCurrentRoundFinishTime(1);
 
-			let bestImageArray: ImageWithPointsAndUsername[] =
-				await this.imageDAO.getImages(currentRound, undefined, 1);
-			this.ensureNotEmpty(bestImageArray);
-			let bestImage = bestImageArray[0];
+		let currentRound = currentRoundData.current_round;
 
-			let bestCaptionArray = await this.captionDAO.getCaptions(
-				1,
-				bestImage.id
-			);
-			this.ensureNotEmpty(bestCaptionArray);
-			let bestCaptionOfBestImage = bestCaptionArray[0];
+		let bestImageArray: ImageWithPointsAndUsername[] =
+			await this.imageDAO.getImages(currentRound, undefined, 1);
+		this.ensureNotEmpty(bestImageArray);
+		let bestImage = bestImageArray[0];
 
-			let imageUrl = await this.s3.getSignedUrl(bestImage.key);
+		let bestCaptionArray = await this.captionDAO.getCaptions(
+			1,
+			bestImage.id
+		);
+		this.ensureNotEmpty(bestCaptionArray);
+		let bestCaptionOfBestImage = bestCaptionArray[0];
 
-			let captionWithCredentials = this.ig.createCaptionWithCredentials(
-				bestCaptionOfBestImage.text,
-				bestImage.username,
-				bestCaptionOfBestImage.username
-			);
+		let imageUrl = await this.s3.getSignedUrl(bestImage.key);
 
-			await this.ig.postPicture(
-				imageUrl,
-				captionWithCredentials
-			);
-			await this.appStateDAO.incrementCurrentRound();
-		} catch (err) {
-			if ((err as Error).message !== Errors.INCOMPLETE_ROUND) {
-				throw err;
-			}
-		} finally {
-			await this.appStateDAO.incrementCurrentRoundFinishTime(1);
-		}
+		let captionWithCredentials = this.ig.createCaptionWithCredentials(
+			bestCaptionOfBestImage.text,
+			bestImage.username,
+			bestCaptionOfBestImage.username
+		);
+
+		await this.ig.postPicture(imageUrl, captionWithCredentials);
+		await this.appStateDAO.incrementCurrentRound();
 	}
 }
 
