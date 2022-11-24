@@ -11,6 +11,7 @@ import captionController, {
 } from "../controllers/CaptionController";
 import appStateController, {AppStateController} from "../controllers/AppStateController";
 
+import adminMiddleware, {AdminMiddleware} from "../middlewares/AdminMiddleware";
 import authenticationMiddleware, {
 	AuthenticationMiddleware,
 } from "../middlewares/AuthenticationMiddleware";
@@ -28,6 +29,7 @@ function createRouter(
 	imageController: ImageController,
 	captionController: CaptionController,
 	authenticationMiddleware: AuthenticationMiddleware,
+    adminMiddleware: AdminMiddleware,
 	appStateController: AppStateController
 ) {
 	router.get(
@@ -127,18 +129,36 @@ function createRouter(
 		return await appStateController.getCurrentRoundData(req, res, next);
 	});
 
-	// admin only
-	router.post("/instagram", async function (req, res, next) {
-		return await imageController.postImageToIg(req, res, next);
-	});
+	// admin only routes below
+	router.post(
+		"/instagram",
+		function (req, res, next) {
+			return adminMiddleware.checkIsAdmin(req, res, next);
+		},
+		async function (req, res, next) {
+			return await imageController.postImageToIg(req, res, next);
+		}
+	);
 
-	router.post("/state/init", async function (req, res, next) {
-		return await appStateController.initRound(req, res, next);
-	});
+	router.post(
+		"/state/init",
+		function (req, res, next) {
+			return adminMiddleware.checkIsAdmin(req, res, next);
+		},
+		async function (req, res, next) {
+			return await appStateController.initRound(req, res, next);
+		}
+	);
 
-    router.post("/state/round", async function(req, res, next) {
-        return await appStateController.upateRound(req, res, next);
-    })
+    router.post(
+		"/state/round",
+		function (req, res, next) {
+			return adminMiddleware.checkIsAdmin(req, res, next);
+		},
+		async function (req, res, next) {
+			return await appStateController.upateRound(req, res, next);
+		}
+	);
 
 	return router;
 }
@@ -148,6 +168,7 @@ export default createRouter(
 	imageController,
 	captionController,
 	authenticationMiddleware,
+    adminMiddleware,
 	appStateController
 );
 export { createRouter };
