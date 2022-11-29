@@ -5,7 +5,7 @@ name: Update App State
 
 on:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "40 3 * * *"
   workflow_dispatch:
 
 jobs:
