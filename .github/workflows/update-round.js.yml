@@ -5,13 +5,12 @@ name: Update App State
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "40 3 * * *"
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    environment: production
     steps:
     - run: |
         curl --location --request POST 'https://everythingwallapi.tk/api/state/round' \
