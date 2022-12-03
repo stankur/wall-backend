@@ -164,8 +164,8 @@ class Instagram {
 	) {
 		return `${rawCaption}
         
-        image: ${imageCreator}
-        caption: ${captionCreator}`;
+image: ${imageCreator}
+caption: ${captionCreator}`;
 	}
 }
 
