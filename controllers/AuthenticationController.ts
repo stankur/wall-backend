@@ -115,7 +115,11 @@ class AuthenticationController {
 
     // assumes user is authenticated
 	signOut(req: Request, res: Response, next: NextFunction) {
-        res.cookie("token", "", {maxAge: 0});
+        res.cookie(
+			"token",
+			"",
+			CookieHelper.tokenCookieConfig(0)
+		);
         return next(new Error(Errors.UNAUTHENTICATED))
     }
 }
