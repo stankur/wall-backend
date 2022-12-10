@@ -19,8 +19,8 @@ class AuthenticationService {
 	}
 
 	// assumes valid username and password
-	async signUp(username: string, password: string) {
-		let id: string = await this.userService.createUser(username, password);
+	async signUp(username: string, email: string, password: string) {
+		let id: string = await this.userService.createUser(username, email, password);
 		return {
 			token: await jwt.getToken({ username, id }),
 			username,

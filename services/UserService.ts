@@ -12,9 +12,9 @@ class UserService {
 		this.bcrypt = bcrypt;
 	}
 
-	async createUser(username: string, password: string) {
+	async createUser(username: string, email: string, password: string) {
 		const hashedPassword: string = await this.bcrypt.hash(password);
-		return await this.userDAO.createUser(username, hashedPassword);
+		return await this.userDAO.createUser(username, email, hashedPassword);
 	}
 
     // throws error at incorrect password

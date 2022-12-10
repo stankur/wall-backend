@@ -50,6 +50,7 @@ class AuthenticationController {
 		try {
 			authenticationData = await this.authenticationService.signUp(
 				req.body.username,
+				req.body.email,
 				req.body.password
 			);
 		} catch (err) {

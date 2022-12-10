@@ -23,4 +23,16 @@ const TypeFixer = {
 		});
 	},
 };
-export { QueryHelper, TypeFixer };
+
+const ObjectHelper = {
+	removeUndefinedOrNull: function (obj: Record<string, any>) {
+		for (let key in obj) {
+			if (obj[key] === null || obj[key] === undefined) {
+				delete obj[key];
+			}
+		}
+
+		return obj;
+	},
+};
+export { QueryHelper, TypeFixer, ObjectHelper };
