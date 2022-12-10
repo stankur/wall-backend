@@ -22,13 +22,23 @@ class AuthenticationMiddleware {
 
 				return next();
 			} catch (err) {
-				this.authenticationService.decodeToken(req.cookies.token);
-
 				return next(err);
 			}
 		}
 
 		return next(new Error(Errors.UNAUTHENTICATED));
+	}
+
+	checkUnAuthenticated(req: Request, res: Response, next: NextFunction) {
+		if (
+			req.cookies &&
+			req.cookies.token &&
+			typeof req.cookies.token === "string"
+		) {
+		return next(new Error(Errors.AUTHENTICATED));
+		}
+
+		return next();
 	}
 }
 

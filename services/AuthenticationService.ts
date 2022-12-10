@@ -19,8 +19,12 @@ class AuthenticationService {
 	}
 
 	// assumes valid username and password
-	async signUp(username: string, password: string) {
-		let id: string = await this.userService.createUser(username, password);
+	async signUp(username: string, email: string, password: string) {
+		let id: string = await this.userService.createUser(
+			username,
+			email,
+			password
+		);
 		return {
 			token: await jwt.getToken({ username, id }),
 			username,
@@ -28,11 +32,15 @@ class AuthenticationService {
 		};
 	}
 
-    decodeToken(token: string) {
-        return jwt.decode(token);
-    }
+	async isEmailExisting(email: string) {
+		let exists: boolean = await this.userService.isEmailExisting(email);
 
+		return { exists };
+	}
 
+	decodeToken(token: string) {
+		return jwt.decode(token);
+	}
 }
 
 export default new AuthenticationService(userService);

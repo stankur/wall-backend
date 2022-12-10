@@ -76,6 +76,7 @@ type UserSample = "user0" | "user1" | "user2" | "user3";
 
 interface UserData {
 	username: string;
+    email: string;
 	password: string;
 	id?: string;
 }
@@ -85,6 +86,7 @@ let users = new Map<UserSample, UserData>([
 		"user0",
 		{
 			username: "user0",
+            email: "user0@gmail.com",
 			password: "somepassword",
 		},
 	],
@@ -92,6 +94,7 @@ let users = new Map<UserSample, UserData>([
 		"user1",
 		{
 			username: "user1",
+            email: "user1@gmail.com",
 			password: "somepassword",
 		},
 	],
@@ -99,6 +102,7 @@ let users = new Map<UserSample, UserData>([
 		"user2",
 		{
 			username: "user2",
+            email: "user2@gmail.com",
 			password: "somepassword",
 		},
 	],
@@ -106,6 +110,7 @@ let users = new Map<UserSample, UserData>([
 		"user3",
 		{
 			username: "user3",
+            email: "user3@gmail.com",
 			password: "somepassword",
 		},
 	],
@@ -118,6 +123,7 @@ describe("Services Tests", () => {
 				let userData = userDataPair[1];
 				let id = await userService.createUser(
 					userData.username,
+                    userData.email,
 					userData.password
 				);
 

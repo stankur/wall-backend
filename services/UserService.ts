@@ -12,12 +12,12 @@ class UserService {
 		this.bcrypt = bcrypt;
 	}
 
-	async createUser(username: string, password: string) {
+	async createUser(username: string, email: string, password: string) {
 		const hashedPassword: string = await this.bcrypt.hash(password);
-		return await this.userDAO.createUser(username, hashedPassword);
+		return await this.userDAO.createUser(username, email, hashedPassword);
 	}
 
-    // throws error at incorrect password
+	// throws error at incorrect password
 	async findUser(username: string, password: string) {
 		const userWithUsername: Pick<
 			User,
@@ -36,7 +36,22 @@ class UserService {
 			};
 		}
 
-        throw new Error(`incorrect password`)
+		throw new Error(`incorrect password`);
+	}
+
+	async isEmailExisting(email: string): Promise<boolean> {
+		let foundUser: Pick<User, "id" | "username" | "hashed_password">;
+
+		try {
+			foundUser = await this.userDAO.findUser(undefined, email);
+			return true;
+		} catch (err) {
+			if ((err as Error).message === "there is no user with the given credentials") {
+                return false;
+            }
+
+            throw err;
+		}
 	}
 }
 
