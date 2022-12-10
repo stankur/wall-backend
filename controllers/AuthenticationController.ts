@@ -70,6 +70,29 @@ class AuthenticationController {
 	}
 
 	// assumes user is not signed in
+	async checkEmailExistence(req: Request, res: Response, next: NextFunction) {
+		try {
+			AuthenticationRequestValidator.validateCheckEmailExistenceRequest(
+				req
+			);
+		} catch (err) {
+			return next(err);
+		}
+
+		let existenceData: { exists: boolean };
+
+		try {
+			existenceData = await authenticationService.isEmailExisting(
+				req.body.email
+			);
+		} catch (err) {
+			return next(err);
+		}
+
+        return res.json(existenceData);
+	}
+
+	// assumes user is not signed in
 	async signIn(req: Request, res: Response, next: NextFunction) {
 		try {
 			AuthenticationRequestValidator.validateSignInRequest(req);
@@ -114,15 +137,11 @@ class AuthenticationController {
 		return res.json(payloadWithoutIAT);
 	}
 
-    // assumes user is authenticated
+	// assumes user is authenticated
 	signOut(req: Request, res: Response, next: NextFunction) {
-        res.cookie(
-			"token",
-			"",
-			CookieHelper.tokenCookieConfig(0)
-		);
-        return next(new Error(Errors.UNAUTHENTICATED))
-    }
+		res.cookie("token", "", CookieHelper.tokenCookieConfig(0));
+		return next(new Error(Errors.UNAUTHENTICATED));
+	}
 }
 
 export default new AuthenticationController(

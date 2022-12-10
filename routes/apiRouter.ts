@@ -41,13 +41,52 @@ function createRouter(
 			return authenticationController.getUserData(req, res, next);
 		}
 	);
-	router.post("/authentication/sign-up", async function (req, res, next) {
-		return await authenticationController.signUp(req, res, next);
-	});
 
-	router.post("/authentication/sign-in", async function (req, res, next) {
-		return await authenticationController.signIn(req, res, next);
-	});
+	router.post(
+		"/authentication/email",
+		function (req, res, next) {
+			return authenticationMiddleware.checkUnAuthenticated(
+				req,
+				res,
+				next
+			);
+		},
+		function (req, res, next) {
+			return authenticationController.checkEmailExistence(
+				req,
+				res,
+				next
+			);
+		}
+	);
+
+	router.post(
+		"/authentication/sign-up",
+		function (req, res, next) {
+			return authenticationMiddleware.checkUnAuthenticated(
+				req,
+				res,
+				next
+			);
+		},
+		async function (req, res, next) {
+			return await authenticationController.signUp(req, res, next);
+		}
+	);
+
+	router.post(
+		"/authentication/sign-in",
+		function (req, res, next) {
+			return authenticationMiddleware.checkUnAuthenticated(
+				req,
+				res,
+				next
+			);
+		},
+		async function (req, res, next) {
+			return await authenticationController.signIn(req, res, next);
+		}
+	);
 
 	router.post(
 		"/authentication/sign-out",
