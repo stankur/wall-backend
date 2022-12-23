@@ -12,7 +12,7 @@ class UserService {
 		this.bcrypt = bcrypt;
 	}
 
-	async createUser(username: string, email: string, password: string) {
+	async createUser(username: string, email: string | undefined, password: string) {
 		const hashedPassword: string = await this.bcrypt.hash(password);
 		return await this.userDAO.createUser(username, email, hashedPassword);
 	}

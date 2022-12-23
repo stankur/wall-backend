@@ -295,4 +295,4 @@ class InteractionDAO {
 }
 
 export default new InteractionDAO(db);
-export { InteractionDAO, InteractionPoints, UserInteraction };
+export { InteractionDAO, InteractionPoints, UserInteraction, Interaction };

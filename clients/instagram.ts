@@ -121,8 +121,6 @@ class Instagram {
 			);
 		}
 
-		console.log(JSON.stringify(createContainerResponseBody));
-
 		if (!createContainerResponseBody["id"]) {
 			throw new Error(
 				"createContainerResponseBody doesn't have a container id but it has to"
