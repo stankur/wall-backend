@@ -1,8 +1,8 @@
 import { Request } from "express";
 import * as yup from "yup";
+import AuthenticationConstants from "../../constants/AuthenticationConstants";
 
 function AuthenticationRequestValidator() {
-
 	function validateEmail(email: string) {
 		yup.string()
 			.email("email not provided or is of a wrong format")
@@ -14,25 +14,35 @@ function AuthenticationRequestValidator() {
 			if (
 				typeof req.body.username !== "string" ||
 				typeof req.body.password !== "string" ||
-				typeof req.body.email !== "string"
+				!(!req.body.email || typeof req.body.email === "string")
 			) {
 				throw new Error(
 					"either username, email, or password is not provided or of an invalid format"
 				);
 			}
+			let acceptableUsername: RegExp;
 
-			validateEmail(req.body.email);
+			if (req.body.email) {
+				// going to this branch implies sign up using email
+				validateEmail(req.body.email);
 
-			const acceptableUsername: RegExp = /^([A-Z]|[0-9]){5,30}$/;
-			const acceptablePassword: RegExp = /.{10,200}/;
-
-			if (!acceptableUsername.test(req.body.username)) {
-				throw new Error(
-					`username is not captial alpha numeric with 5 - 30 characters`
-				);
+				acceptableUsername =
+					AuthenticationConstants.acceptableRegularUsername;
+			} else {
+				// going to this branch implies sign up using instagram
+				acceptableUsername =
+					AuthenticationConstants.acceptableInstagramUsername;
 			}
 
-			if (!acceptablePassword.test(req.body.password)) {
+			if (!acceptableUsername.test(req.body.username)) {
+				throw new Error(`username is not valid`);
+			}
+
+			if (
+				!AuthenticationConstants.acceptablePassword.test(
+					req.body.password
+				)
+			) {
 				throw new Error(`password is not 10 - 200 characters`);
 			}
 		},
@@ -42,7 +52,7 @@ function AuthenticationRequestValidator() {
 				throw new Error("email is not provided");
 			}
 
-            validateEmail(req.body.email);
+			validateEmail(req.body.email);
 		},
 
 		validateSignInRequest: function (req: Request) {
@@ -51,6 +61,33 @@ function AuthenticationRequestValidator() {
 				typeof req.body.password !== "string"
 			) {
 				throw new Error("either username or password is not provided");
+			}
+		},
+
+		validateVerifyInstagramRequest: function (req: Request) {
+			if (
+				typeof req.body.username !== "string" ||
+				typeof req.body.verificationCode !== "string"
+			) {
+				throw new Error(
+					"either username or verification code is not provided"
+				);
+			}
+
+			if (
+				!AuthenticationConstants.acceptableInstagramUsername.test(
+					req.body.username
+				)
+			) {
+				throw new Error(`username is not valid`);
+			}
+
+			if (
+				!AuthenticationConstants.acceptableVerificationCode.test(
+					req.body.verificationCode
+				)
+			) {
+				throw new Error(`verification code is not valid`);
 			}
 		},
 	};

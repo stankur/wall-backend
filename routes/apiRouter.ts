@@ -51,8 +51,8 @@ function createRouter(
 				next
 			);
 		},
-		function (req, res, next) {
-			return authenticationController.checkEmailExistence(
+		async function (req, res, next) {
+			return await authenticationController.checkEmailExistence(
 				req,
 				res,
 				next
@@ -95,6 +95,17 @@ function createRouter(
 		},
 		function (req, res, next) {
 			return authenticationController.signOut(req, res, next);
+		}
+	);
+
+	router.post(
+		"/authentication/verify-instagram",
+		async function (req, res, next) {
+			return await authenticationController.verifyInstagram(
+				req,
+				res,
+				next
+			);
 		}
 	);
 
@@ -189,7 +200,7 @@ function createRouter(
 		}
 	);
 
-    router.post(
+	router.post(
 		"/state/round",
 		function (req, res, next) {
 			return adminMiddleware.checkIsAdmin(req, res, next);

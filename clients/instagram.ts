@@ -1,3 +1,7 @@
+import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration"
+dayjs.extend(duration);
+
 import dotenv from "dotenv";
 import findConfig from "find-config";
 import fetch, { RequestInit } from "node-fetch";
@@ -16,9 +20,24 @@ interface PublishContainerResponseBody {
 	id: string;
 }
 
+interface VerificationCommentsResponseBody {
+	data: [
+		{
+			timestamp: string;
+			text: string;
+			id: string;
+		}
+	];
+}
+
+interface CommentUsernameResponseBody {
+    username: string;
+    id: string;
+}
+
 interface InstagramData {
-	pageAccessToken?: string;
-	userId?: string;
+	pageAccessToken: string;
+	userId: string;
 	baseUrl: string;
 }
 
@@ -39,8 +58,41 @@ const helpers = {
 class Instagram {
 	private data: InstagramData;
 
+
 	constructor(pageAccessToken: string, userId: string, baseUrl: string) {
 		this.data = { pageAccessToken, userId, baseUrl };
+	}
+
+    async searchVerificationComment(username: string, verificationCode: string): Promise<boolean> {
+		let verificationCommentsResponseBody: VerificationCommentsResponseBody =
+			await helpers.fetch(
+				`${this.data.baseUrl}/${process.env.VERIFICATION_POST_MEDIA_ID}/comments?access_token=${process.env.INSTAGRAM_VERIFICATION_PAGE_PAGE_ACCESS_TOKEN}`
+			);
+
+		let comments = verificationCommentsResponseBody.data;
+		let now = dayjs();
+
+		for (let i = 0; i < comments.length; i++) {
+			let comment = comments[i];
+			let commentTime = comment.timestamp;
+
+			if (dayjs.duration(now.diff(commentTime)).hours() > 0) {
+                break;
+			}
+
+            if (comment.text === verificationCode) {
+                let commentUsername: CommentUsernameResponseBody =
+					await helpers.fetch(
+						`${this.data.baseUrl}/${comment.id}?access_token=${process.env.INSTAGRAM_VERIFICATION_PAGE_PAGE_ACCESS_TOKEN}&fields=username`
+					);
+
+                if (commentUsername.username === username) {
+                    return true
+                }
+            }
+		}
+
+        return false;
 	}
 
 	async _waitUntilContainerIsReady(containerId: string): Promise<string> {
