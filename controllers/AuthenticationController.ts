@@ -89,7 +89,7 @@ class AuthenticationController {
 			return next(err);
 		}
 
-        return res.json(existenceData);
+		return res.json(existenceData);
 	}
 
 	// assumes user is not signed in
@@ -141,6 +141,27 @@ class AuthenticationController {
 	signOut(req: Request, res: Response, next: NextFunction) {
 		res.cookie("token", "", CookieHelper.tokenCookieConfig(0));
 		return next(new Error(Errors.UNAUTHENTICATED));
+	}
+
+	async verifyInstagram(req: Request, res: Response, next: NextFunction) {
+		try {
+			AuthenticationRequestValidator.validateVerifyInstagramRequest(req);
+		} catch (err) {
+			return next(err);
+		}
+
+		let verified: boolean;
+
+		try {
+			verified = await this.authenticationService.verifyInstagram(
+				(req.body.username as string).slice(1),
+				req.body.verificationCode
+			);
+		} catch (err) {
+			return next(err);
+		}
+
+		return res.json({ verified });
 	}
 }
 

@@ -6,7 +6,7 @@ interface User {
 	id: string;
 	username: string;
 	hashed_password: string;
-    email: string;
+    email: string | null;
 	created_at: string;
 	updated_at: string;
 }
@@ -18,7 +18,7 @@ class UserDAO {
 		this.db = db;
 	}
 
-	async createUser(username: string, email: string, hashed_password: string) {
+	async createUser(username: string, email: string | undefined, hashed_password: string) {
 		let idObj: {id: string};
 
 		try {
@@ -54,7 +54,6 @@ class UserDAO {
 					qb.where(filteredFilters);
 				});
 		} catch (err) {
-			console.log((err as Error).message);
 			throw new Error(
 				"there is an error when finding the user credentials requested from the database"
 			);

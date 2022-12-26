@@ -51,7 +51,7 @@ class ImageDAO {
 				.returning("id");
 		} catch (e) {
 			throw new Error(
-				`there is an error while inserting your image to our database. Either the user credentials attached to your image doesn't exist or it is our server network issue`
+				`there is an error while inserting your image to our database. Either the user credentials attached to your image doesn't exist, image has improper attributes, or it is our server network issue`
 			);
 		}
 

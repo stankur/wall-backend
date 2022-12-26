@@ -1,11 +1,14 @@
 import userService, { UserService } from "./UserService";
 import jwt from "../clients/jwt";
+import instagram, { Instagram } from "../clients/instagram";
 class AuthenticationService {
 	private userService: UserService;
+    private ig: Instagram;
 
 	// assumes that request is not authenticated yet
-	constructor(userService: UserService) {
+	constructor(userService: UserService, ig: Instagram) {
 		this.userService = userService;
+        this.ig = ig;
 	}
 
 	// assumes valid username and password
@@ -38,10 +41,14 @@ class AuthenticationService {
 		return { exists };
 	}
 
+    async verifyInstagram(username: string, verificationCode: string) {
+        return await this.ig.searchVerificationComment(username, verificationCode);
+    }
+
 	decodeToken(token: string) {
 		return jwt.decode(token);
 	}
 }
 
-export default new AuthenticationService(userService);
+export default new AuthenticationService(userService, instagram);
 export { AuthenticationService };

@@ -90,7 +90,7 @@ class ImageService {
 	async _convertToHaveUrl() {}
 
 	async getImages(
-		user?: string,
+		signedInUser?: string,
 		currentRound: Boolean = true,
 		id?: string
 	): Promise<ImageWithCaptions[] | ImageWithCaptionsAndUserInteractions[]> {
@@ -116,9 +116,9 @@ class ImageService {
 			| ImageWithCaptionsNoUrl[]
 			| ImageWithCaptionsAndUserInteractionsNoUrl[] = [];
 
-		if (user) {
+		if (signedInUser) {
 			let userInteractions =
-				await this.interactionDAO.getUserInteractions(user);
+				await this.interactionDAO.getUserInteractions(signedInUser);
 
 			let imagesWithPointsAndUserInteractions: ImageWithPointsAndUserInteractions[] =
 				images.map(function (image) {
